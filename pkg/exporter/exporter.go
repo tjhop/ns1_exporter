@@ -1,0 +1,174 @@
+package exporter
+
+import (
+	"fmt"
+
+	"github.com/go-kit/log/level"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/common/promlog"
+
+	"github.com/tjhop/ns1_exporter/internal/version"
+	"github.com/tjhop/ns1_exporter/pkg/metrics"
+	ns1_internal "github.com/tjhop/ns1_exporter/pkg/ns1"
+)
+
+var (
+	logger = promlog.New(&promlog.Config{})
+)
+
+// Worker is a struct containing configs needed to retreive stats from NS1 API
+// to expose as prometheus metrics. It implements the prometheus.Collector interface
+type Worker struct {
+	EnableZoneQPS   bool
+	EnableRecordQPS bool
+
+	client *ns1_internal.Client
+	// add collector?
+	zoneCache map[string]*ns1_internal.Zone
+	qpsCache  []*ns1_internal.QPS
+}
+
+// NewWorker creates a new Worker struct to collect data from the NS1 API
+func NewWorker(client *ns1_internal.Client, zoneEnabled, recordEnabled bool) *Worker {
+	worker := &Worker{
+		EnableZoneQPS:   zoneEnabled,
+		EnableRecordQPS: recordEnabled,
+		client:          client,
+	}
+
+	// register exporter worker for metrics collection
+	metrics.Registry.MustRegister(worker)
+
+	return worker
+}
+
+// Describe implements the prometheus.Collector interface
+func (w *Worker) Describe(ch chan<- *prometheus.Desc) {
+	ch <- metrics.MetricBuildInfoDesc
+	ch <- metrics.MetricQPSDesc
+}
+
+// Collect implements the prometheus.Collector interface
+func (w *Worker) Collect(ch chan<- prometheus.Metric) {
+	// write build info
+	ch <- prometheus.MustNewConstMetric(
+		metrics.MetricBuildInfoDesc, prometheus.GaugeValue, 1, version.Version, version.BuildDate, version.Commit,
+	)
+
+	// qps metrics
+	for _, qps := range w.qpsCache {
+		ch <- prometheus.MustNewConstMetric(
+			metrics.MetricQPSDesc, prometheus.GaugeValue, float64(qps.Value), qps.ZoneName, qps.RecordName, qps.RecordType,
+		)
+	}
+}
+
+// RefreshZoneData updates the data for each of the zones in the worker's zone list by querying the NS1 API, parses the data to structs that serve as internal counterparts to the NS1 API's dns.Record and dns.Zone, and then updating the worker's internal map of zones. This internal map is used as a cache to respond to respond to HTTP requests.
+func (w *Worker) RefreshZoneData() {
+	getRecords := w.EnableRecordQPS || w.EnableZoneQPS
+	w.zoneCache = w.client.RefreshZoneData(getRecords)
+	level.Debug(logger).Log("msg", "Worker zone cache updated", "worker", "exporter", "num_zones", len(w.zoneCache))
+
+	if getRecords {
+		for k, v := range w.zoneCache {
+			level.Debug(logger).Log("msg", "Worker zone record count", "worker", "exporter", "zone", k, "num_records", len(v.Records))
+		}
+	}
+}
+
+// RefreshQPSData refreshes the worker's `[]*ns1_internal.QPS` cache array by using the zone/record information present in the worker's `map[string]*ns1_internal.Zone` cache map. This function dispatches the work of making the API calls/updating the cache to either `Worker.RefreshQPSRecordData()`, `Worker.RefreshQPSZoneData()`, or `Worker.RefreshQPSAccountData()` as needed, depending on the flags provided to the service.
+func (w *Worker) RefreshQPSData() {
+	// if enabled at record level monitoring, only make record-level qps
+	// calls. zone/account level stats can be calculated at query time, and
+	// it'll save API calls.
+	if w.EnableRecordQPS {
+		w.RefreshQPSRecordData()
+		return
+	}
+
+	// similar reasoning if enabled at zone level monitoring
+	if w.EnableZoneQPS {
+		w.RefreshQPSZoneData()
+		return
+	}
+
+	// otherwise, just grab account level stats
+	w.RefreshQPSAccountData()
+}
+
+// RefreshQPSAccountData refreshes the worker's `[]*ns1_internal.QPS` cache array by requesting account-level QPS stats from the NS1 API.
+func (w *Worker) RefreshQPSAccountData() {
+	cache := make([]*ns1_internal.QPS, 1)
+
+	qpsRaw, _, err := w.client.Stats.GetQPS()
+	if err != nil {
+		level.Error(logger).Log("msg", "Failed to get account-level qps data for from NS1 API", "err", err.Error(), "worker", "exporter")
+		metrics.MetricExporterNS1APIFailures.Inc()
+	}
+
+	cache[0] = &ns1_internal.QPS{
+		Value: qpsRaw,
+	}
+	w.qpsCache = cache
+	level.Debug(logger).Log("msg", "Worker QPS cache updated", "worker", "exporter", "qps_level", "account")
+}
+
+// RefreshQPSZoneData refreshes the worker's `[]*ns1_internal.QPS` cache array by using the zone/record information present in the worker's `map[string]*ns1_internal.Zone` cache map.
+func (w *Worker) RefreshQPSZoneData() {
+	var cache []*ns1_internal.QPS
+
+	for zName := range w.zoneCache {
+		zoneQPSRaw, _, err := w.client.Stats.GetZoneQPS(zName)
+		if err != nil {
+			level.Error(logger).Log("msg", "Failed to get zone-level qps data for from NS1 API", "err", err.Error(), "worker", "exporter", "zone_name", zName)
+		metrics.MetricExporterNS1APIFailures.Inc()
+		}
+
+		cache = append(cache, &ns1_internal.QPS{
+			Value:    zoneQPSRaw,
+			ZoneName: zName,
+		})
+		level.Debug(logger).Log("msg", "Worker QPS cache updated", "worker", "exporter", "qps_level", "zone", "zone", zName)
+	}
+	w.qpsCache = cache
+}
+
+// RefreshQPSRecordData refreshes the worker's `[]*ns1_internal.QPS` cache array by using the zone/record information present in the worker's `map[string]*ns1_internal.Zone` cache map.
+func (w *Worker) RefreshQPSRecordData() {
+	// check total number of records in zone cache prior to launching requests
+	var numRecords int
+	for _, z := range w.zoneCache {
+		numRecords += len(z.Records)
+	}
+	level.Debug(logger).Log("msg", "updating worker qps cache", "worker", "exporter", "zone_count", len(w.zoneCache), "record_count", fmt.Sprintf("%d", numRecords))
+	// TODO: this may be a good place to log a warning if a user has a crap ton of records and we're worried about api calls or anything
+
+	var cache []*ns1_internal.QPS
+
+	for zName, zData := range w.zoneCache {
+		for _, r := range zData.Records {
+			recordQPSRaw, _, err := w.client.Stats.GetRecordQPS(zName, r.Domain, r.Type)
+			if err != nil {
+				level.Error(logger).Log("msg", "Failed to get record-level qps data for from NS1 API", "err", err.Error(), "worker", "exporter", "zone_name", zName, "record_name", r.Domain, "record_type", r.Type)
+		metrics.MetricExporterNS1APIFailures.Inc()
+			}
+
+			cache = append(cache, &ns1_internal.QPS{
+				Value:      recordQPSRaw,
+				ZoneName:   zName,
+				RecordName: r.Domain,
+				RecordType: r.Type,
+			})
+		}
+		level.Debug(logger).Log("msg", "Worker QPS cache updated", "worker", "exporter", "qps_level", "zone", "zone", zName, "num_records", len(zData.Records))
+	}
+	w.qpsCache = cache
+}
+
+// Refresh calls the other Refresh* functions as needed to update the worker's data from the NS1 API.
+func (w *Worker) Refresh() {
+	level.Info(logger).Log("msg", "Updating zone data from NS1 API", "worker", "exporter")
+	w.RefreshZoneData()
+	level.Info(logger).Log("msg", "Updating QPS data from NS1 API", "worker", "exporter")
+	w.RefreshQPSData()
+}
