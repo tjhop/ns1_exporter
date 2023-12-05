@@ -1,0 +1,75 @@
+version: 1
+
+builds:
+  - env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+    ldflags:
+      - -X github.com/tjhop/ns1_exporter/internal/version.BuildDate={{ .CommitDate }}
+      - -X github.com/tjhop/ns1_exporter/internal/version.Version={{ .Version }}
+      - -X github.com/tjhop/ns1_exporter/internal/version.Commit={{ .Commit }}
+    binary: ns1_exporter
+    main: './cmd/ns1_exporter'
+dockers:
+  # build latest and specific tag version images
+  - image_templates:
+      - "ghcr.io/tjhop/{{.ProjectName}}:{{ .Tag }}"
+      - "ghcr.io/tjhop/{{.ProjectName}}:latest"
+    goos: linux
+    goarch: amd64
+    use: docker
+    build_flag_templates:
+    - "--pull"
+    - "--label=org.opencontainers.image.created={{.Date}}"
+    - "--label=org.opencontainers.image.title={{.ProjectName}}"
+    - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+    - "--label=org.opencontainers.image.version={{.Version}}"
+    - "--label=org.opencontainers.image.source=https://github.com/tjhop/ns1_exporter"
+    - "--label=org.opencontainers.image.description='NS1 Prometheus Exporter and HTTP SD Provider'"
+    - "--label=org.opencontainers.image.licenses=MIT"
+checksum:
+  name_template: 'checksums.txt'
+snapshot:
+  name_template: "{{ incpatch .Version }}-next"
+nfpms:
+  - package_name: 'ns1_exporter'
+    homepage: 'https://github.com/tjhop/ns1_exporter'
+    maintainer: 'TJ Hoplock <t.hoplock@gmail.com>'
+    description: 'NS1 Prometheus Exporter and HTTP SD Provider'
+    formats:
+      - apk
+      - deb
+      - rpm
+    bindir: /usr/bin
+    contents:
+      - src: ./README.md
+        dst: /usr/share/doc/tjhop/ns1_exporter/README.md
+      - src: ./packaging/systemd/ns1_exporter.service
+        dst: /lib/systemd/system/ns1_exporter.service
+        type: config
+        file_info:
+          mode: 0644
+          owner: root
+          group: root
+    scripts:
+      preinstall: ./packaging/scripts/preinstall.sh
+      postinstall: ./packaging/scripts/postinstall.sh
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^Merge pull request'
+      - '^ci(?:\(\w+\))?\!?:'
+      - '^docs(?:\(\w+\))?\!?:'
+      - '^test(?:\(\w+\))?\!?:'
+      - '^style(?:\(\w+\))?\!?:'
+  groups:
+    - title: "New Features And Changes"
+      regexp: '^.*?feat(\([[:word:]]+\))??!?:.+$'
+      order: 0
+    - title: "Fixes"
+      regexp: '^.*?fix(\([[:word:]]+\))??!?:.+$'
+      order: 1
+    - title: "Other Changes"
+      order: 999
