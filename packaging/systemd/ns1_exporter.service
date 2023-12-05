@@ -1,0 +1,12 @@
+[Unit]
+Description=NS1 Prometheus Exporter and HTTP SD Provider
+Wants=network.target
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/ns1_exporter
+Restart=on-failure
+KillSignal=SIGINT
+
+[Install]
+WantedBy=multi-user.target
