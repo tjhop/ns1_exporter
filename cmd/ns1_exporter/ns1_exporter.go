@@ -95,7 +95,7 @@ var (
 
 	flagNS1EnableZoneQPS = kingpin.Flag(
 		"ns1.enable-zone-qps",
-		"Whether or not to enable retrieving zone-level QPS stats from the NS1 API (overriden by `--ns1.enable-record-qps`)",
+		"Whether or not to enable retrieving zone-level QPS stats from the NS1 API (overridden by `--ns1.enable-record-qps`)",
 	).Default("true").Bool()
 
 	flagNS1EnableSD = kingpin.Flag(

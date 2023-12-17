@@ -30,7 +30,7 @@ var (
 	logger = promlog.New(&promlog.Config{})
 )
 
-// Worker is a struct containing configs needed to retreive stats from NS1 API
+// Worker is a struct containing configs needed to retrieve stats from NS1 API
 // to expose as prometheus metrics. It implements the prometheus.Collector interface
 type Worker struct {
 	EnableZoneQPS   bool
