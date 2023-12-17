@@ -72,8 +72,6 @@ func NewWorker(client *ns1_internal.Client) *Worker {
 		client: client,
 	}
 
-	// TODO: this is where metrics should be registered with the custom registry passed to worker
-
 	return &worker
 }
 

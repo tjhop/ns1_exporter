@@ -31,7 +31,6 @@ var (
 	logger = promlog.New(&promlog.Config{})
 )
 
-// TODO: make flags for all these
 type APIConfig struct {
 	Concurrency   int
 	Endpoint      string
@@ -40,7 +39,7 @@ type APIConfig struct {
 	EnableDDI     bool
 }
 
-// ZoneRecord is an internal package that is essentially the same thing as a
+// ZoneRecord is an internal struct that is essentially the same thing as a
 // `model/dns.ZoneRecord`, just trimmed down to removee a bunch of fields we
 // don't care about
 type ZoneRecord struct {
