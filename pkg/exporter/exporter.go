@@ -135,7 +135,7 @@ func (w *Worker) RefreshQPSZoneData() {
 		zoneQPSRaw, _, err := w.client.Stats.GetZoneQPS(zName)
 		if err != nil {
 			level.Error(logger).Log("msg", "Failed to get zone-level qps data for from NS1 API", "err", err.Error(), "worker", "exporter", "zone_name", zName)
-		metrics.MetricExporterNS1APIFailures.Inc()
+			metrics.MetricExporterNS1APIFailures.Inc()
 		}
 
 		cache = append(cache, &ns1_internal.QPS{
@@ -164,7 +164,7 @@ func (w *Worker) RefreshQPSRecordData() {
 			recordQPSRaw, _, err := w.client.Stats.GetRecordQPS(zName, r.Domain, r.Type)
 			if err != nil {
 				level.Error(logger).Log("msg", "Failed to get record-level qps data for from NS1 API", "err", err.Error(), "worker", "exporter", "zone_name", zName, "record_name", r.Domain, "record_type", r.Type)
-		metrics.MetricExporterNS1APIFailures.Inc()
+				metrics.MetricExporterNS1APIFailures.Inc()
 			}
 
 			cache = append(cache, &ns1_internal.QPS{

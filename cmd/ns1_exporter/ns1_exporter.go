@@ -38,8 +38,8 @@ import (
 	"github.com/prometheus/exporter-toolkit/web/kingpinflag"
 
 	"github.com/tjhop/ns1_exporter/internal/version"
-	"github.com/tjhop/ns1_exporter/pkg/metrics"
 	"github.com/tjhop/ns1_exporter/pkg/exporter"
+	"github.com/tjhop/ns1_exporter/pkg/metrics"
 	"github.com/tjhop/ns1_exporter/pkg/ns1"
 	sd "github.com/tjhop/ns1_exporter/pkg/servicediscovery"
 )
