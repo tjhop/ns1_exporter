@@ -18,7 +18,7 @@ Contributions are welcome! Commits should follow [conventional commits](https://
 ### Docker
 
 ```shell
-docker run --name -d -p 8080:8080 ghcr.io/tjhop/ns1_exporter
+docker run -d -p 8080:8080 ghcr.io/tjhop/ns1_exporter
 ```
 
 ### Go
