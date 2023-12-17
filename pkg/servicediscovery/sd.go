@@ -253,5 +253,7 @@ func (w *Worker) ServeHTTP(writer http.ResponseWriter, req *http.Request) {
 	// write results to json
 	writer.Header().Set("content-type", "application/json; charset=utf-8")
 	writer.WriteHeader(http.StatusOK)
-	writer.Write(buf)
+	if bytesWritten, err := writer.Write(buf); err != nil {
+		level.Error(logger).Log("msg", "Failed to write full HTTP response", "err", err.Error(), "worker", "http_sd", "bytes", bytesWritten)
+	}
 }
