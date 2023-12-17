@@ -1,0 +1,23 @@
+scrape_configs:
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # Discover Node Exporter instances to scrape from NS1 API
+  - job_name: "node"
+    http_sd_configs:
+      - url: "http://127.0.0.1:8080/sd"
+        refresh_interval: 60s
+    relabel_configs:
+      # only get targets from A records
+      - source_labels: [__meta_ns1_record_type]
+        action: keep
+        regex: "A"
+      # set __address__ to the first IP of the first answer group
+      - source_labels: [__meta_ns1_record_answers]
+        target_label: __address__
+        regex: ",.+;rdata\\[\\|(.+?)\\|\\];.+,"
+        replacement: '${1}:9100'
+      # set a friendly name for the host
+      - source_labels: [__meta_ns1_record_domain]
+        target_label: instance

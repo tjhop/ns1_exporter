@@ -1,0 +1,9 @@
+scrape_configs:
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # Scrape queries-per-second stats and other NS1 API metrics from NS1 exporter
+  - job_name: "ns1_qps"
+    static_configs:
+      - targets: ["localhost:8080"]
