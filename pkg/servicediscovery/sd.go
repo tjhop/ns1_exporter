@@ -58,7 +58,7 @@ type HTTPSDTarget struct {
 	Labels  promModel.LabelSet `json:"labels"`
 }
 
-// Worker is a struct containing configs needed to retreive stats from NS1 API
+// Worker is a struct containing configs needed to retrieve stats from NS1 API
 // to expose as prometheus metrics. It implements the prometheus.Collector interface
 type Worker struct {
 	client *ns1_internal.Client
