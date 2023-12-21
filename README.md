@@ -18,7 +18,7 @@ Contributions are welcome! Commits should follow [conventional commits](https://
 ### Docker
 
 ```shell
-docker run -d -p 8080:8080 ghcr.io/tjhop/ns1_exporter
+docker run -d -p 8080:8080 -e NS1_APIKEY="${NS1_APIKEY}" ghcr.io/tjhop/ns1_exporter <flags>
 ```
 
 ### Go
@@ -26,13 +26,26 @@ With a working `go` environemnt, the `ns1_exporter` can be installed like so:
 
 ```shell
 go install github.com/tjhop/ns1_exporter@latest
+NS1_APIKEY="<api-token>" /path/to/ns1_exporter <flags>
 ```
 
 ### Binary
 Download a release appropriate for your system from the [Releases](https://github.com/tjhop/ns1_exporter/releases) page.
 
+```shell
+NS1_APIKEY="<api-token>" /path/to/ns1_exporter <flags>
+```
+
 ### System Packages
-Download a release appropriate for your system from the [Releases](https://github.com/tjhop/ns1_exporter/releases) page.
+Download a release appropriate for your system from the [Releases](https://github.com/tjhop/ns1_exporter/releases) page. A Systemd service file is included in the system packages that are built.
+
+```shell
+# install system package (example assuming Debian based)
+apt install /path/to/package
+# create unit override, add NS1_APIKEY environment variable and add any needed flags
+systemctl edit ns1_exporter.service
+systemctl enable ns1_exporter.service ; systemctl start ns1_exporter.service
+```
 
 _Note_: While packages are built for several systems, there are currently no plans to attempt to submit packages to upstream package repositories.
 
