@@ -58,8 +58,10 @@ type HTTPSDTarget struct {
 	Labels  promModel.LabelSet `json:"labels"`
 }
 
-// Worker is a struct containing configs needed to retrieve stats from NS1 API
-// to expose as prometheus metrics. It implements the prometheus.Collector interface
+// Worker contains an API client to interact with the NS1 api, as well as a
+// cache of DNS records and the Prometheus targets created from those records.
+// Worker gets registered on a different handler for the `/sd` path and run via
+// the same HTTP server as the metrics exporter.
 type Worker struct {
 	client *ns1_internal.Client
 
@@ -250,7 +252,6 @@ func (w *Worker) ServeHTTP(writer http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	// write results to json
 	writer.Header().Set("content-type", "application/json; charset=utf-8")
 	writer.WriteHeader(http.StatusOK)
 	if bytesWritten, err := writer.Write(buf); err != nil {

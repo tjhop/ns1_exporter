@@ -37,7 +37,6 @@ type Worker struct {
 	EnableRecordQPS bool
 
 	client *ns1_internal.Client
-	// add collector?
 	zoneCache map[string]*ns1_internal.Zone
 	qpsCache  []*ns1_internal.QPS
 }

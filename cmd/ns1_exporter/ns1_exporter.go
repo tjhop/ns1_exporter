@@ -51,8 +51,8 @@ const (
 
 var (
 	// pkg level logger
-	logger        = promlog.New(promlogConfig)
 	promlogConfig = &promlog.Config{}
+	logger        = promlog.New(promlogConfig)
 
 	// so. many. flags.
 	flagWebTelemetryPath = kingpin.Flag(
