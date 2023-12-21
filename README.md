@@ -53,6 +53,8 @@ _Note_: While packages are built for several systems, there are currently no pla
 
 The primary purpose of the exporter is to expose NS1 DNS queries-per-second stats from the NS1 API.
 
+> :warning: _NOTE_: The queries-per-second statistics available from the NS1 API are not real-time, but are time delayed. This means that the metric values that are exposed to Prometheus are not real-time. This exporter makes no attempt to adjust metric timestamp to try and align the corresponding timestamp with the qps values.
+
 An example Prometheus configuration file demonstrating how to scrape metrics can be found in [docs/examples/prometheus_ns1_metrics.yml](./docs/examples/prometheus_ns1_metrics.yml)
 
 ### Metrics

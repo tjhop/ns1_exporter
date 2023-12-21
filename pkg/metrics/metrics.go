@@ -36,7 +36,7 @@ var (
 	)
 	MetricQPSDesc = prometheus.NewDesc(
 		prometheus.BuildFQName(metricNamespace, "stats", "queries_per_second"),
-		"DNS queries per second for the labeled NS1 resource.",
+		"DNS queries per second for the labeled NS1 resource. Note that NS1 QPS metrics are time delayed, not real-time.",
 		[]string{"zone_name", "record_name", "record_type"}, nil,
 	)
 
