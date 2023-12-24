@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -63,15 +64,19 @@ type HTTPSDTarget struct {
 // Worker gets registered on a different handler for the `/sd` path and run via
 // the same HTTP server as the metrics exporter.
 type Worker struct {
-	client *ns1_internal.Client
+	ZoneBlacklist *regexp.Regexp
+	ZoneWhitelist *regexp.Regexp
 
+	client      *ns1_internal.Client
 	recordCache []*dns.Record
 	targetCache []*HTTPSDTarget
 }
 
-func NewWorker(client *ns1_internal.Client) *Worker {
+func NewWorker(client *ns1_internal.Client, blacklist, whitelist *regexp.Regexp) *Worker {
 	worker := Worker{
-		client: client,
+		client:        client,
+		ZoneBlacklist: blacklist,
+		ZoneWhitelist: whitelist,
 	}
 
 	return &worker
@@ -220,7 +225,7 @@ func (w *Worker) RefreshPrometheusTargetData() {
 func (w *Worker) RefreshRecordData() {
 	var records []*dns.Record
 
-	zoneData := w.client.RefreshZoneData(true)
+	zoneData := w.client.RefreshZoneData(true, w.ZoneBlacklist, w.ZoneWhitelist)
 	for zName, zData := range zoneData {
 		for _, zRecord := range zData.Records {
 			record, _, err := w.client.Records.Get(zData.Zone, zRecord.Domain, zRecord.Type)

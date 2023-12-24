@@ -88,15 +88,25 @@ var (
 	// "Whether or not to enable DDI in the NS1 API client",
 	// ).Bool()
 
-	flagNS1EnableRecordQPS = kingpin.Flag(
-		"ns1.enable-record-qps",
+	flagNS1ExporterEnableRecordQPS = kingpin.Flag(
+		"ns1.exporter-enable-record-qps",
 		"Whether or not to enable retrieving record-level QPS stats from the NS1 API",
 	).Default("true").Bool()
 
-	flagNS1EnableZoneQPS = kingpin.Flag(
-		"ns1.enable-zone-qps",
+	flagNS1ExporterEnableZoneQPS = kingpin.Flag(
+		"ns1.exporter-enable-zone-qps",
 		"Whether or not to enable retrieving zone-level QPS stats from the NS1 API (overridden by `--ns1.enable-record-qps`)",
 	).Default("true").Bool()
+
+	flagNS1ExporterZoneBlacklistRegex = kingpin.Flag(
+		"ns1.exporter-zone-blacklist",
+		"A regular expression of zone(s) the exporter is not allowed to query qps stats for (takes precedence over --ns1.exporter-zone-whitelist)",
+	).Default("").Regexp()
+
+	flagNS1ExporterZoneWhitelistRegex = kingpin.Flag(
+		"ns1.exporter-zone-whitelist",
+		"A regular expression of zone(s) the exporter is allowed to query qps stats for",
+	).Default("").Regexp()
 
 	flagNS1EnableSD = kingpin.Flag(
 		"ns1.enable-service-discovery",
@@ -107,6 +117,16 @@ var (
 		"ns1.sd-refresh-interval",
 		"The interval at which targets for Prometheus HTTP service discovery will be refreshed from the NS1 API",
 	).Default("5m").Duration()
+
+	flagNS1SDZoneBlacklistRegex = kingpin.Flag(
+		"ns1.sd-zone-blacklist",
+		"A regular expression of zone(s) that the service discovery mechanism will not provide targets for (takes precedence over --ns1.sd-zone-whitelist)",
+	).Default("").Regexp()
+
+	flagNS1SDZoneWhitelistRegex = kingpin.Flag(
+		"ns1.sd-zone-whitelist",
+		"A regular expression of zone(s) that the service discovery mechanism will provide targets for",
+	).Default("").Regexp()
 
 	flagRuntimeGOMAXPROCS = kingpin.Flag(
 		"runtime.gomaxprocs", "The target number of CPUs Go will run on (GOMAXPROCS)",
@@ -141,8 +161,8 @@ func Run() {
 		UserAgent:   fmt.Sprintf("ns1_exporter/%s", version.Version),
 		// EnableDDI:   *flagNS1EnableDDI,
 	})
-	exporterWorker := exporter.NewWorker(apiClient, *flagNS1EnableZoneQPS, *flagNS1EnableRecordQPS)
-	sdWorker := sd.NewWorker(apiClient)
+	exporterWorker := exporter.NewWorker(apiClient, *flagNS1ExporterEnableZoneQPS, *flagNS1ExporterEnableRecordQPS, *flagNS1ExporterZoneBlacklistRegex, *flagNS1ExporterZoneWhitelistRegex)
+	sdWorker := sd.NewWorker(apiClient, *flagNS1SDZoneBlacklistRegex, *flagNS1SDZoneWhitelistRegex)
 
 	var g run.Group
 	{

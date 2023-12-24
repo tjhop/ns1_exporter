@@ -16,6 +16,7 @@ package exporter
 
 import (
 	"fmt"
+	"regexp"
 
 	"github.com/go-kit/log/level"
 	"github.com/prometheus/client_golang/prometheus"
@@ -35,17 +36,21 @@ var (
 type Worker struct {
 	EnableZoneQPS   bool
 	EnableRecordQPS bool
+	ZoneBlacklist   *regexp.Regexp
+	ZoneWhitelist   *regexp.Regexp
 
-	client *ns1_internal.Client
+	client    *ns1_internal.Client
 	zoneCache map[string]*ns1_internal.Zone
 	qpsCache  []*ns1_internal.QPS
 }
 
 // NewWorker creates a new Worker struct to collect data from the NS1 API
-func NewWorker(client *ns1_internal.Client, zoneEnabled, recordEnabled bool) *Worker {
+func NewWorker(client *ns1_internal.Client, zoneEnabled, recordEnabled bool, blacklist, whitelist *regexp.Regexp) *Worker {
 	worker := &Worker{
 		EnableZoneQPS:   zoneEnabled,
 		EnableRecordQPS: recordEnabled,
+		ZoneBlacklist:   blacklist,
+		ZoneWhitelist:   whitelist,
 		client:          client,
 	}
 
@@ -79,7 +84,7 @@ func (w *Worker) Collect(ch chan<- prometheus.Metric) {
 // RefreshZoneData updates the data for each of the zones in the worker's zone list by querying the NS1 API, parses the data to structs that serve as internal counterparts to the NS1 API's dns.Record and dns.Zone, and then updating the worker's internal map of zones. This internal map is used as a cache to respond to respond to HTTP requests.
 func (w *Worker) RefreshZoneData() {
 	getRecords := w.EnableRecordQPS || w.EnableZoneQPS
-	w.zoneCache = w.client.RefreshZoneData(getRecords)
+	w.zoneCache = w.client.RefreshZoneData(getRecords, w.ZoneBlacklist, w.ZoneWhitelist)
 	level.Debug(logger).Log("msg", "Worker zone cache updated", "worker", "exporter", "num_zones", len(w.zoneCache))
 
 	if getRecords {

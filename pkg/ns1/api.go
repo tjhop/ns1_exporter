@@ -18,11 +18,13 @@ import (
 	"crypto/tls"
 	"net/http"
 	"os"
+	"regexp"
 	"time"
 
 	"github.com/go-kit/log/level"
 	"github.com/prometheus/common/promlog"
 	api "gopkg.in/ns1/ns1-go.v2/rest"
+	"gopkg.in/ns1/ns1-go.v2/rest/model/dns"
 
 	"github.com/tjhop/ns1_exporter/pkg/metrics"
 )
@@ -108,7 +110,7 @@ func NewClient(config APIConfig) *Client {
 	return &client
 }
 
-func (c *Client) RefreshZoneData(getRecords bool) map[string]*Zone {
+func (c *Client) RefreshZoneData(getRecords bool, zoneBlacklist, zoneWhitelist *regexp.Regexp) map[string]*Zone {
 	zMap := make(map[string]*Zone)
 
 	zones, _, err := c.Zones.List()
@@ -116,6 +118,37 @@ func (c *Client) RefreshZoneData(getRecords bool) map[string]*Zone {
 		level.Error(logger).Log("msg", "Failed to list zones from NS1 API", "err", err.Error(), "worker", "exporter")
 		metrics.MetricExporterNS1APIFailures.Inc()
 		return zMap
+	}
+
+	// check listed zones against any provided blacklist and remove ones that we don't care about
+	if zoneBlacklist != nil && zoneBlacklist.String() != "" {
+		var filteredZones []*dns.Zone
+		for _, z := range zones {
+			if zoneBlacklist.MatchString(z.Zone) {
+				// if zone in blacklist, log it and skip it
+				level.Debug(logger).Log("msg", "skipping zone because it matches blacklist regex", "zone", z.Zone, "blacklist_regex", zoneBlacklist.String())
+				continue
+			}
+
+			filteredZones = append(filteredZones, z)
+		}
+
+		zones = filteredZones
+	}
+
+	// check listed zones against any provided whitelist and keep only ones that we care about
+	if zoneWhitelist != nil && zoneWhitelist.String() != "" {
+		var filteredZones []*dns.Zone
+		for _, z := range zones {
+			if !zoneWhitelist.MatchString(z.Zone) {
+				// if zone not in whitelist, log it and skip it
+				level.Debug(logger).Log("msg", "skipping zone because it doesn't match whitelist regex", "zone", z.Zone, "whitelist_regex", zoneWhitelist.String())
+				continue
+			}
+			filteredZones = append(filteredZones, z)
+		}
+
+		zones = filteredZones
 	}
 
 	// iterate over listed zones and get details for each
