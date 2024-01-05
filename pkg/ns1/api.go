@@ -68,11 +68,8 @@ type QPS struct {
 	RecordType string
 }
 
-// Client is a type alias for the NS1 API Client, for use with defining custom methods.
-type Client api.Client
-
 // NewClient creates a new NS1 API client based on the provided config
-func NewClient(config APIConfig) *Client {
+func NewClient(config APIConfig) *api.Client {
 	token := os.Getenv("NS1_APIKEY")
 	if token == "" {
 		level.Error(logger).Log("err", "NS1_APIKEY environment variable is not set")
@@ -105,12 +102,10 @@ func NewClient(config APIConfig) *Client {
 		c.RateLimitStrategySleep()
 	}
 
-	client := Client(*c)
-
-	return &client
+	return c
 }
 
-func (c *Client) RefreshZoneData(getRecords bool, zoneBlacklist, zoneWhitelist *regexp.Regexp) map[string]*Zone {
+func RefreshZoneData(c *api.Client, getRecords bool, zoneBlacklist, zoneWhitelist *regexp.Regexp) map[string]*Zone {
 	zMap := make(map[string]*Zone)
 
 	zones, _, err := c.Zones.List()

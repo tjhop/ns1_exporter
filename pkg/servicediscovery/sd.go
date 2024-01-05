@@ -25,6 +25,7 @@ import (
 	"github.com/go-kit/log/level"
 	promModel "github.com/prometheus/common/model"
 	"github.com/prometheus/common/promlog"
+	api "gopkg.in/ns1/ns1-go.v2/rest"
 	"gopkg.in/ns1/ns1-go.v2/rest/model/data"
 	"gopkg.in/ns1/ns1-go.v2/rest/model/dns"
 	"gopkg.in/ns1/ns1-go.v2/rest/model/filter"
@@ -67,12 +68,12 @@ type Worker struct {
 	ZoneBlacklist *regexp.Regexp
 	ZoneWhitelist *regexp.Regexp
 
-	client      *ns1_internal.Client
+	client      *api.Client
 	recordCache []*dns.Record
 	targetCache []*HTTPSDTarget
 }
 
-func NewWorker(client *ns1_internal.Client, blacklist, whitelist *regexp.Regexp) *Worker {
+func NewWorker(client *api.Client, blacklist, whitelist *regexp.Regexp) *Worker {
 	worker := Worker{
 		client:        client,
 		ZoneBlacklist: blacklist,
@@ -225,7 +226,7 @@ func (w *Worker) RefreshPrometheusTargetData() {
 func (w *Worker) RefreshRecordData() {
 	var records []*dns.Record
 
-	zoneData := w.client.RefreshZoneData(true, w.ZoneBlacklist, w.ZoneWhitelist)
+	zoneData := ns1_internal.RefreshZoneData(w.client, true, w.ZoneBlacklist, w.ZoneWhitelist)
 	for zName, zData := range zoneData {
 		for _, zRecord := range zData.Records {
 			record, _, err := w.client.Records.Get(zData.Zone, zRecord.Domain, zRecord.Type)
