@@ -44,8 +44,8 @@ var (
 	// metrics for operations of the exporter itself
 	MetricExporterNS1APIFailures = prometheus.NewCounter(prometheus.CounterOpts{
 		Namespace: metricNamespace,
-		Name:      "api_failures",
-		Help:      "Number of failed NS1 API calls.",
+		Name:      "api_failures_total",
+		Help:      "Total number of failed NS1 API calls.",
 	})
 )
 
