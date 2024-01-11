@@ -19,12 +19,14 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 
 	"github.com/go-kit/log/level"
 	promModel "github.com/prometheus/common/model"
 	"github.com/prometheus/common/promlog"
+	"github.com/samber/lo"
 	api "gopkg.in/ns1/ns1-go.v2/rest"
 	"gopkg.in/ns1/ns1-go.v2/rest/model/data"
 	"gopkg.in/ns1/ns1-go.v2/rest/model/dns"
@@ -69,6 +71,7 @@ type Worker struct {
 	ZoneWhitelist *regexp.Regexp
 
 	client      *api.Client
+	zoneCache   map[string]*ns1_internal.Zone
 	recordCache []*dns.Record
 	targetCache []*HTTPSDTarget
 }
@@ -97,8 +100,10 @@ func metaAsPrometheusMetaLabel(meta *data.Meta, innerDelim, outerDelim string) s
 
 	fmt.Fprintf(&builder, "meta[%s", innerDelim)
 
-	for metaField, val := range metaMap {
-		fmt.Fprintf(&builder, "%s=%s%s", metaField, val, innerDelim)
+	metaMapKeys := lo.Keys(metaMap)
+	sort.Strings(metaMapKeys)
+	for _, key := range metaMapKeys {
+		fmt.Fprintf(&builder, "%s=%v%s", key, metaMap[key], innerDelim)
 	}
 
 	fmt.Fprintf(&builder, "]%s", outerDelim)
@@ -122,7 +127,7 @@ func answerRdataAsPrometheuaMetaLabel(rdata []string, innerDelim, outerDelim str
 	return builder.String()
 }
 
-func recordFiltersAsPrometheusMetaLabel(filters []*filter.Filter, delimiter string) string {
+func recordFiltersAsPrometheusMetaLabel(filters []*filter.Filter) string {
 	if len(filters) == 0 {
 		return ",,"
 	}
@@ -133,18 +138,23 @@ func recordFiltersAsPrometheusMetaLabel(filters []*filter.Filter, delimiter stri
 		fmt.Fprintf(&builder, ";type=%s;", filter.Type)
 		fmt.Fprintf(&builder, "disabled=%t;", filter.Disabled)
 
-		switch filter.Config {
-		case nil:
-			builder.WriteString("config[||]")
-		default:
-			builder.WriteString("config[|")
-			for k, v := range filter.Config {
-				fmt.Fprintf(&builder, "%s=%v;", k, v)
-			}
-			builder.WriteString("];")
-
+		if filter.Config == nil {
+			builder.WriteString("config[||];,")
+			continue
 		}
-		builder.WriteString(",")
+
+		if len(filter.Config) == 0 {
+			builder.WriteString("config[||];,")
+			continue
+		}
+
+		builder.WriteString("config[|")
+		configKeys := lo.Keys(filter.Config)
+		sort.Strings(configKeys)
+		for _, key := range configKeys {
+			fmt.Fprintf(&builder, "%s=%v|", key, filter.Config[key])
+		}
+		builder.WriteString("];,")
 	}
 
 	return builder.String()
@@ -191,7 +201,7 @@ func recordAsPrometheusTarget(record *dns.Record) *HTTPSDTarget {
 	labels := promModel.LabelSet{
 		ns1RecordLabelAnswers:                promModel.LabelValue(answers.String()),
 		ns1RecordLabelDomain:                 promModel.LabelValue(record.Domain),
-		ns1RecordLabelFilters:                promModel.LabelValue(recordFiltersAsPrometheusMetaLabel(record.Filters, ",")),
+		ns1RecordLabelFilters:                promModel.LabelValue(recordFiltersAsPrometheusMetaLabel(record.Filters)),
 		ns1RecordLabelID:                     promModel.LabelValue(record.ID),
 		ns1RecordLabelLink:                   promModel.LabelValue(record.Link),
 		ns1RecordLabelMeta:                   promModel.LabelValue("," + metaAsPrometheusMetaLabel(record.Meta, ";", ",")),
@@ -223,11 +233,14 @@ func (w *Worker) RefreshPrometheusTargetData() {
 	level.Debug(logger).Log("msg", "Worker record cache updated", "worker", "http_sd", "num_records", len(w.targetCache))
 }
 
+func (w *Worker) RefreshZoneData() {
+	w.zoneCache = ns1_internal.RefreshZoneData(w.client, true, w.ZoneBlacklist, w.ZoneWhitelist)
+}
+
 func (w *Worker) RefreshRecordData() {
 	var records []*dns.Record
 
-	zoneData := ns1_internal.RefreshZoneData(w.client, true, w.ZoneBlacklist, w.ZoneWhitelist)
-	for zName, zData := range zoneData {
+	for zName, zData := range w.zoneCache {
 		for _, zRecord := range zData.Records {
 			record, _, err := w.client.Records.Get(zData.Zone, zRecord.Domain, zRecord.Type)
 			if err != nil {
@@ -245,6 +258,7 @@ func (w *Worker) RefreshRecordData() {
 
 func (w *Worker) Refresh() {
 	level.Info(logger).Log("msg", "Updating record data from NS1 API", "worker", "http_sd")
+	w.RefreshZoneData()
 	w.RefreshRecordData()
 	level.Info(logger).Log("msg", "Updating prometheus target data from cached record data", "worker", "http_sd")
 	w.RefreshPrometheusTargetData()
