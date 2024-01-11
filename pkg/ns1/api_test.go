@@ -49,16 +49,16 @@ func TestRefreshZoneData(t *testing.T) {
 			"drop.me": {},
 		}, expectedLen: 3},
 		"recordsEnabled": {recordEnabled: true, zoneEnabled: false, zoneBlacklist: nil, zoneWhitelist: nil, want: map[string]*Zone{
-			"foo.bar": {Zone: "foo.bar", Records: []*ZoneRecord{{Domain: "test", ShortAns: []string{"dead::beef"}, Type: "AAAA"}}},
-			"keep.me": {Zone: "keep.me", Records: []*ZoneRecord{{Domain: "test", ShortAns: []string{"1.2.3.4"}, Type: "A"}}},
-			"drop.me": {Zone: "drop.me", Records: []*ZoneRecord{{Domain: "test", ShortAns: []string{"5.6.7.8"}, Type: "A"}}},
+			"foo.bar": {Zone: "foo.bar", Records: []*ZoneRecord{{Domain: "test.foo.bar", ShortAns: []string{"dead::beef"}, Type: "AAAA"}}},
+			"keep.me": {Zone: "keep.me", Records: []*ZoneRecord{{Domain: "test.keep.me", ShortAns: []string{"1.2.3.4"}, Type: "A"}}},
+			"drop.me": {Zone: "drop.me", Records: []*ZoneRecord{{Domain: "test.drop.me", ShortAns: []string{"5.6.7.8"}, Type: "A"}}},
 		}, expectedLen: 3},
 		"blacklist": {recordEnabled: true, zoneEnabled: false, zoneBlacklist: regexp.MustCompile("drop.+"), zoneWhitelist: nil, want: map[string]*Zone{
-			"foo.bar": {Zone: "foo.bar", Records: []*ZoneRecord{{Domain: "test", ShortAns: []string{"dead::beef"}, Type: "AAAA"}}},
-			"keep.me": {Zone: "keep.me", Records: []*ZoneRecord{{Domain: "test", ShortAns: []string{"1.2.3.4"}, Type: "A"}}},
+			"foo.bar": {Zone: "foo.bar", Records: []*ZoneRecord{{Domain: "test.foo.bar", ShortAns: []string{"dead::beef"}, Type: "AAAA"}}},
+			"keep.me": {Zone: "keep.me", Records: []*ZoneRecord{{Domain: "test.keep.me", ShortAns: []string{"1.2.3.4"}, Type: "A"}}},
 		}, expectedLen: 2},
 		"whitelist": {recordEnabled: true, zoneEnabled: false, zoneBlacklist: nil, zoneWhitelist: regexp.MustCompile("keep.+"), want: map[string]*Zone{
-			"keep.me": {Zone: "keep.me", Records: []*ZoneRecord{{Domain: "test", ShortAns: []string{"1.2.3.4"}, Type: "A"}}},
+			"keep.me": {Zone: "keep.me", Records: []*ZoneRecord{{Domain: "test.keep.me", ShortAns: []string{"1.2.3.4"}, Type: "A"}}},
 		}, expectedLen: 1},
 	}
 
@@ -66,26 +66,26 @@ func TestRefreshZoneData(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			require.Nil(t, mock.AddZoneListTestCase(nil, nil,
 				[]*dns.Zone{
-					{Zone: "foo.bar", Records: []*dns.ZoneRecord{{Domain: "test", ShortAns: []string{"dead::beef"}, Type: "AAAA"}}},
-					{Zone: "keep.me", Records: []*dns.ZoneRecord{{Domain: "test", ShortAns: []string{"1.2.3.4"}, Type: "A"}}},
-					{Zone: "drop.me", Records: []*dns.ZoneRecord{{Domain: "test", ShortAns: []string{"5.6.7.8"}, Type: "A"}}},
+					{Zone: "foo.bar", Records: []*dns.ZoneRecord{{Domain: "test.foo.bar", ShortAns: []string{"dead::beef"}, Type: "AAAA"}}},
+					{Zone: "keep.me", Records: []*dns.ZoneRecord{{Domain: "test.keep.me", ShortAns: []string{"1.2.3.4"}, Type: "A"}}},
+					{Zone: "drop.me", Records: []*dns.ZoneRecord{{Domain: "test.drop.me", ShortAns: []string{"5.6.7.8"}, Type: "A"}}},
 				},
 			))
 
 			getRecords := tc.recordEnabled || tc.zoneEnabled
 
 			require.Nil(t, mock.AddZoneGetTestCase("foo.bar", nil, nil,
-				&dns.Zone{Zone: "foo.bar", Records: []*dns.ZoneRecord{{Domain: "test", ShortAns: []string{"dead::beef"}, Type: "AAAA"}}},
+				&dns.Zone{Zone: "foo.bar", Records: []*dns.ZoneRecord{{Domain: "test.foo.bar", ShortAns: []string{"dead::beef"}, Type: "AAAA"}}},
 				getRecords,
 			))
 
 			require.Nil(t, mock.AddZoneGetTestCase("keep.me", nil, nil,
-				&dns.Zone{Zone: "keep.me", Records: []*dns.ZoneRecord{{Domain: "test", ShortAns: []string{"1.2.3.4"}, Type: "A"}}},
+				&dns.Zone{Zone: "keep.me", Records: []*dns.ZoneRecord{{Domain: "test.keep.me", ShortAns: []string{"1.2.3.4"}, Type: "A"}}},
 				getRecords,
 			))
 
 			require.Nil(t, mock.AddZoneGetTestCase("drop.me", nil, nil,
-				&dns.Zone{Zone: "drop.me", Records: []*dns.ZoneRecord{{Domain: "test", ShortAns: []string{"5.6.7.8"}, Type: "A"}}},
+				&dns.Zone{Zone: "drop.me", Records: []*dns.ZoneRecord{{Domain: "test.drop.me", ShortAns: []string{"5.6.7.8"}, Type: "A"}}},
 				getRecords,
 			))
 
