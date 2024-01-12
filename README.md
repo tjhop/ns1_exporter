@@ -62,7 +62,7 @@ An example Prometheus configuration file demonstrating how to scrape metrics can
 | Metric Name | Labels | Metric Type | Metric Help |
 | --- | --- | --- | --- |
 | `ns1_build_info` | [`build_date`, `commit`, `version`] | Gauge | "ns1_build_info NS1 exporter build information" |
-| `ns1_api_failures` | [] | Counter | "Number of failed NS1 API calls." |
+| `ns1_api_failures_total` | [] | Counter | "Total number of failed NS1 API calls." |
 | `ns1_stats_queries_per_second` | [`record_name`, `record_type`, `zone_name`] | Gauge | "ns1_stats_queries_per_second DNS queries per second for the labeled NS1 resource." |
 
 ## HTTP Service Discovery
