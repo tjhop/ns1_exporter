@@ -230,7 +230,7 @@ func (w *Worker) RefreshPrometheusTargetData() {
 	}
 
 	w.targetCache = data
-	level.Debug(logger).Log("msg", "Worker record cache updated", "worker", "http_sd", "num_records", len(w.targetCache))
+	level.Debug(logger).Log("msg", "Worker Prometheus target group updated", "worker", "http_sd", "num_targets", len(w.targetCache))
 }
 
 func (w *Worker) RefreshZoneData() {
