@@ -29,6 +29,15 @@ go install github.com/tjhop/ns1_exporter@latest
 NS1_APIKEY="<api-token>" /path/to/ns1_exporter <flags>
 ```
 
+_NOTE_: Installing via this method will result in a build without embedded metadata for version/build info. If you wish to fully recreate a release build as this project does, you will need to clone the project and use [goreleaser](https://goreleaser.com/) to make a build:
+
+```shell
+git clone https://github.com/tjhop/ns1_exporter.git
+cd ns1_exporter
+goreleaser build --snapshot --clean --single-target
+NS1_APIKEY="<api-token>" ./dist/ns1_exporter_linux_amd64_v1/ns1_exporter <flags>
+```
+
 ### Binary
 Download a release appropriate for your system from the [Releases](https://github.com/tjhop/ns1_exporter/releases) page.
 
@@ -98,3 +107,78 @@ Example HTTP SD entry for an `A` record pointing to a testing instance on Hetzne
 ```
 
 An example Prometheus configuration file demonstrating HTTP SD can be found in [docs/examples/prometheus_ns1_http_sd.yml](./docs/examples/prometheus_ns1_http_sd.yml)
+
+## Command Line Flags
+
+The available command line flags are documented in the help flag:
+
+```shell
+~ -> ./dist/ns1_exporter_linux_amd64_v1/ns1_exporter -h
+usage: ns1_exporter [<flags>]
+
+
+Flags:
+  -h, --[no-]help                Show context-sensitive help (also try
+                                 --help-long and --help-man).
+      --web.telemetry-path="/metrics"  
+                                 Path under which to expose metrics.
+      --web.service-discovery-path="/sd"  
+                                 Path under which to expose targets for
+                                 Prometheus HTTP service discovery.
+      --web.max-requests=40      Maximum number of parallel scrape requests.
+                                 Use 0 to disable.
+      --ns1.concurrency=0        NS1 API request concurrency. Default
+                                 (0) uses NS1 Go SDK sleep strategry.
+                                 60 may be good balance between performance
+                                 and reduced risk of HTTP 429, see
+                                 https://pkg.go.dev/gopkg.in/ns1/ns1-go.v2/rest
+                                 and exporter documentation for more
+                                 information.
+      --[no-]ns1.exporter-enable-record-qps  
+                                 Whether or not to enable retrieving
+                                 record-level QPS stats from the NS1 API
+      --[no-]ns1.exporter-enable-zone-qps  
+                                 Whether or not to enable retrieving zone-level
+                                 QPS stats from the NS1 API (overridden by
+                                 `--ns1.enable-record-qps`)
+      --ns1.exporter-zone-blacklist=  
+                                 A regular expression of zone(s) the exporter
+                                 is not allowed to query qps stats for (takes
+                                 precedence over --ns1.exporter-zone-whitelist)
+      --ns1.exporter-zone-whitelist=  
+                                 A regular expression of zone(s) the exporter is
+                                 allowed to query qps stats for
+      --[no-]ns1.enable-service-discovery  
+                                 Whether or not to enable an HTTP endpoint
+                                 to expose NS1 DNS records as HTTP service
+                                 discovery targets
+      --ns1.sd-refresh-interval=5m  
+                                 The interval at which targets for Prometheus
+                                 HTTP service discovery will be refreshed from
+                                 the NS1 API
+      --ns1.sd-zone-blacklist=   A regular expression of zone(s) that the
+                                 service discovery mechanism will not
+                                 provide targets for (takes precedence over
+                                 --ns1.sd-zone-whitelist)
+      --ns1.sd-zone-whitelist=   A regular expression of zone(s) that the
+                                 service discovery mechanism will provide
+                                 targets for
+      --ns1.sd-record-type=      A regular expression of record types that
+                                 the service discovery mechanism will provide
+                                 targets for
+      --runtime.gomaxprocs=1     The target number of CPUs Go will run on
+                                 (GOMAXPROCS) ($GOMAXPROCS)
+      --[no-]web.systemd-socket  Use systemd socket activation listeners instead
+                                 of port listeners (Linux only).
+      --web.listen-address=:8080 ...  
+                                 Addresses on which to expose metrics and web
+                                 interface. Repeatable for multiple addresses.
+      --web.config.file=""       [EXPERIMENTAL] Path to configuration file
+                                 that can enable TLS or authentication. See:
+                                 https://github.com/prometheus/exporter-toolkit/blob/master/docs/web-configuration.md
+      --log.level=info           Only log messages with the given severity or
+                                 above. One of: [debug, info, warn, error]
+      --log.format=logfmt        Output format of log messages. One of: [logfmt,
+                                 json]
+      --[no-]version             Show application version.
+```
