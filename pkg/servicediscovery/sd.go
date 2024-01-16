@@ -67,8 +67,9 @@ type HTTPSDTarget struct {
 // Worker gets registered on a different handler for the `/sd` path and run via
 // the same HTTP server as the metrics exporter.
 type Worker struct {
-	ZoneBlacklist *regexp.Regexp
-	ZoneWhitelist *regexp.Regexp
+	ZoneBlacklist       *regexp.Regexp
+	ZoneWhitelist       *regexp.Regexp
+	RecordTypeWhitelist *regexp.Regexp
 
 	client      *api.Client
 	zoneCache   map[string]*ns1_internal.Zone
@@ -76,11 +77,12 @@ type Worker struct {
 	targetCache []*HTTPSDTarget
 }
 
-func NewWorker(client *api.Client, blacklist, whitelist *regexp.Regexp) *Worker {
+func NewWorker(client *api.Client, blacklist, whitelist, recordType *regexp.Regexp) *Worker {
 	worker := Worker{
-		client:        client,
-		ZoneBlacklist: blacklist,
-		ZoneWhitelist: whitelist,
+		client:              client,
+		ZoneBlacklist:       blacklist,
+		ZoneWhitelist:       whitelist,
+		RecordTypeWhitelist: recordType,
 	}
 
 	return &worker
@@ -241,10 +243,25 @@ func (w *Worker) RefreshRecordData() {
 	var records []*dns.Record
 
 	for zName, zData := range w.zoneCache {
-		for _, zRecord := range zData.Records {
-			record, _, err := w.client.Records.Get(zData.Zone, zRecord.Domain, zRecord.Type)
+		// if record type regex is provided, filter records
+		if w.RecordTypeWhitelist != nil && w.RecordTypeWhitelist.String() != "" {
+			var filteredRecords []*ns1_internal.ZoneRecord
+			for _, r := range zData.Records {
+				if !w.RecordTypeWhitelist.MatchString(r.Type) {
+					// if record type not in whitelist, log it and skip it
+					level.Debug(logger).Log("msg", "skipping record because it doesn't match whitelist regex", "worker", "http_sd", "record", r.Domain, "record_type_regex", w.RecordTypeWhitelist.String())
+					continue
+				}
+				filteredRecords = append(filteredRecords, r)
+			}
+
+			zData.Records = filteredRecords
+		}
+
+		for _, r := range zData.Records {
+			record, _, err := w.client.Records.Get(zData.Zone, r.Domain, r.Type)
 			if err != nil {
-				level.Error(logger).Log("msg", "Failed to get record data from NS1 API", "err", err.Error(), "worker", "http_sd", "zone_name", zName, "record_domain", zRecord.Domain, "record_type", zRecord.Type)
+				level.Error(logger).Log("msg", "Failed to get record data from NS1 API", "err", err.Error(), "worker", "http_sd", "zone_name", zName, "record_domain", r.Domain, "record_type", r.Type)
 				metrics.MetricExporterNS1APIFailures.Inc()
 				continue
 			}

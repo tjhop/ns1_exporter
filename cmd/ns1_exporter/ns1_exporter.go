@@ -128,6 +128,11 @@ var (
 		"A regular expression of zone(s) that the service discovery mechanism will provide targets for",
 	).Default("").Regexp()
 
+	flagNS1SDRecordTypeRegex = kingpin.Flag(
+		"ns1.sd-record-type",
+		"A regular expression of record types that the service discovery mechanism will provide targets for",
+	).Default("").Regexp()
+
 	flagRuntimeGOMAXPROCS = kingpin.Flag(
 		"runtime.gomaxprocs", "The target number of CPUs Go will run on (GOMAXPROCS)",
 	).Envar("GOMAXPROCS").Default("1").Int()
@@ -162,7 +167,7 @@ func Run() {
 		// EnableDDI:   *flagNS1EnableDDI,
 	})
 	exporterWorker := exporter.NewWorker(apiClient, *flagNS1ExporterEnableZoneQPS, *flagNS1ExporterEnableRecordQPS, *flagNS1ExporterZoneBlacklistRegex, *flagNS1ExporterZoneWhitelistRegex)
-	sdWorker := sd.NewWorker(apiClient, *flagNS1SDZoneBlacklistRegex, *flagNS1SDZoneWhitelistRegex)
+	sdWorker := sd.NewWorker(apiClient, *flagNS1SDZoneBlacklistRegex, *flagNS1SDZoneWhitelistRegex, *flagNS1SDRecordTypeRegex)
 
 	var g run.Group
 	{

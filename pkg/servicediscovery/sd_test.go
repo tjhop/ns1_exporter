@@ -1,4 +1,4 @@
-// Copyright 2023 TJ Hoplock
+// Copyright 2024 TJ Hoplock
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"regexp"
 	"testing"
 	"time"
 
@@ -218,7 +219,7 @@ func TestRecordAsPrometheusTarget(t *testing.T) {
 	mockClient.Endpoint, err = url.Parse(fmt.Sprintf("https://%s/v1/", mock.Address))
 	require.NoError(t, err)
 
-	worker := NewWorker(mockClient, nil, nil)
+	worker := NewWorker(mockClient, nil, nil, nil)
 
 	tests := map[string]struct {
 		recordCache []*dns.Record
@@ -254,17 +255,18 @@ func TestRefreshRecordData(t *testing.T) {
 	mockClient.Endpoint, err = url.Parse(fmt.Sprintf("https://%s/v1/", mock.Address))
 	require.NoError(t, err)
 
-	worker := NewWorker(mockClient, nil, nil)
-
 	tests := map[string]struct {
-		zoneCache map[string]*ns1_internal.Zone
-		want      []*dns.Record
+		zoneCache           map[string]*ns1_internal.Zone
+		recordTypeWhitelist *regexp.Regexp
+		want                []*dns.Record
 	}{
-		"empty_zone_cache": {zoneCache: map[string]*ns1_internal.Zone{}, want: nil},
-		"some_zone_cache":  {zoneCache: mockZoneCache, want: mockDnsRecordCache},
+		"empty_zone_cache":   {zoneCache: map[string]*ns1_internal.Zone{}, recordTypeWhitelist: nil, want: nil},
+		"some_zone_cache":    {zoneCache: mockZoneCache, recordTypeWhitelist: nil, want: mockDnsRecordCache},
+		"record_type_filter": {zoneCache: mockZoneCache, recordTypeWhitelist: regexp.MustCompile("SRV|AAAA"), want: mockDnsRecordCache[1:]},
 	}
 
 	for name, tc := range tests {
+		worker := NewWorker(mockClient, nil, nil, tc.recordTypeWhitelist)
 		worker.zoneCache = tc.zoneCache
 
 		t.Run(name, func(t *testing.T) {
@@ -293,7 +295,7 @@ func TestRefreshPrometheusTargetData(t *testing.T) {
 	mockClient.Endpoint, err = url.Parse(fmt.Sprintf("https://%s/v1/", mock.Address))
 	require.NoError(t, err)
 
-	worker := NewWorker(mockClient, nil, nil)
+	worker := NewWorker(mockClient, nil, nil, nil)
 
 	tests := map[string]struct {
 		recordCache []*dns.Record
@@ -329,7 +331,7 @@ func TestServeHTTP(t *testing.T) {
 	ts := httptest.NewServer(http.DefaultServeMux)
 	t.Cleanup(ts.Close)
 
-	worker := NewWorker(mockClient, nil, nil)
+	worker := NewWorker(mockClient, nil, nil, nil)
 	http.Handle("/sd", worker)
 	httpClient := http.Client{
 		Timeout: 30 * time.Second,
