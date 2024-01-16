@@ -15,11 +15,16 @@
 package servicediscovery
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"testing"
+	"time"
 
+	promModel "github.com/prometheus/common/model"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/ns1/ns1-go.v2/mockns1"
 	api "gopkg.in/ns1/ns1-go.v2/rest"
@@ -58,6 +63,80 @@ var (
 			Filters: []*filter.Filter{},
 		},
 	}
+	mockSDTargetCache = []*HTTPSDTarget{
+		{Targets: []string{"test.foo.bar-A"}, Labels: promModel.LabelSet{
+			ns1RecordLabelAnswers:                promModel.LabelValue(",;id=mockARecordAnswerID;rdata[|1.2.3.4|5.6.7.8|127.0.0.1|];meta[|up=1|];region_name=;,"),
+			ns1RecordLabelDomain:                 promModel.LabelValue("test.foo.bar"),
+			ns1RecordLabelFilters:                promModel.LabelValue(",;type=up;disabled=false;config[||];,"),
+			ns1RecordLabelID:                     promModel.LabelValue("mockARecordID"),
+			ns1RecordLabelLink:                   promModel.LabelValue(""),
+			ns1RecordLabelMeta:                   promModel.LabelValue(",meta[;up=1;],"),
+			ns1RecordLabelOverrideAddressRecords: promModel.LabelValue("false"),
+			ns1RecordLabelOverrideTTL:            promModel.LabelValue("false"),
+			ns1RecordLabelRegions:                promModel.LabelValue(",,"),
+			ns1RecordLabelTTL:                    promModel.LabelValue("3600"),
+			ns1RecordLabelType:                   promModel.LabelValue("A"),
+			ns1RecordLabelUseClientSubnet:        promModel.LabelValue("false"),
+			ns1RecordLabelZone:                   promModel.LabelValue("foo.bar"),
+		}},
+		{Targets: []string{"test.foo.bar-AAAA"}, Labels: promModel.LabelSet{
+			ns1RecordLabelAnswers:                promModel.LabelValue(",;id=mockAAAARecordAnswerID;rdata[|dead::beef|];meta[||];region_name=;,"),
+			ns1RecordLabelDomain:                 promModel.LabelValue("test.foo.bar"),
+			ns1RecordLabelFilters:                promModel.LabelValue(",,"),
+			ns1RecordLabelID:                     promModel.LabelValue("mockAAAARecordID"),
+			ns1RecordLabelLink:                   promModel.LabelValue(""),
+			ns1RecordLabelMeta:                   promModel.LabelValue(",meta[;;],"),
+			ns1RecordLabelOverrideAddressRecords: promModel.LabelValue("false"),
+			ns1RecordLabelOverrideTTL:            promModel.LabelValue("false"),
+			ns1RecordLabelRegions:                promModel.LabelValue(",,"),
+			ns1RecordLabelTTL:                    promModel.LabelValue("3600"),
+			ns1RecordLabelType:                   promModel.LabelValue("AAAA"),
+			ns1RecordLabelUseClientSubnet:        promModel.LabelValue("false"),
+			ns1RecordLabelZone:                   promModel.LabelValue("foo.bar"),
+		}},
+	}
+	mockTargetJSON = []byte(`[
+    {
+        "targets": [
+            "test.foo.bar-A"
+        ],
+        "labels": {
+            "__meta_ns1_record_answers": ",;id=mockARecordAnswerID;rdata[|1.2.3.4|5.6.7.8|127.0.0.1|];meta[|up=1|];region_name=;,",
+            "__meta_ns1_record_domain": "test.foo.bar",
+            "__meta_ns1_record_filters": ",;type=up;disabled=false;config[||];,",
+            "__meta_ns1_record_id": "mockARecordID",
+            "__meta_ns1_record_link": "",
+            "__meta_ns1_record_meta": ",meta[;up=1;],",
+            "__meta_ns1_record_override_address_records_enabled": "false",
+            "__meta_ns1_record_override_ttl_enabled": "false",
+            "__meta_ns1_record_regions": ",,",
+            "__meta_ns1_record_ttl": "3600",
+            "__meta_ns1_record_type": "A",
+            "__meta_ns1_record_use_client_subnet_enabled": "false",
+            "__meta_ns1_record_zone": "foo.bar"
+        }
+    },
+    {
+        "targets": [
+            "test.foo.bar-AAAA"
+        ],
+        "labels": {
+            "__meta_ns1_record_answers": ",;id=mockAAAARecordAnswerID;rdata[|dead::beef|];meta[||];region_name=;,",
+            "__meta_ns1_record_domain": "test.foo.bar",
+            "__meta_ns1_record_filters": ",,",
+            "__meta_ns1_record_id": "mockAAAARecordID",
+            "__meta_ns1_record_link": "",
+            "__meta_ns1_record_meta": ",meta[;;],",
+            "__meta_ns1_record_override_address_records_enabled": "false",
+            "__meta_ns1_record_override_ttl_enabled": "false",
+            "__meta_ns1_record_regions": ",,",
+            "__meta_ns1_record_ttl": "3600",
+            "__meta_ns1_record_type": "AAAA",
+            "__meta_ns1_record_use_client_subnet_enabled": "false",
+            "__meta_ns1_record_zone": "foo.bar"
+        }
+    }
+]`)
 )
 
 func TestMetaAsPrometheusMetaLabel(t *testing.T) {
@@ -130,9 +209,42 @@ func TestRecordFiltersAsPrometheusMetaLabel(t *testing.T) {
 }
 
 // func recordAsPrometheusTarget(record *dns.Record) *HTTPSDTarget {
-func TestRecordAsPrometheusTarget(t *testing.T) {}
+func TestRecordAsPrometheusTarget(t *testing.T) {
+	mock, doer, err := mockns1.New(t)
+	require.Nil(t, err)
+	defer mock.Shutdown()
 
-// func (w *Worker) RefreshRecordData() {
+	mockClient := api.NewClient(doer, api.SetAPIKey("mockAPIKey"))
+	mockClient.Endpoint, err = url.Parse(fmt.Sprintf("https://%s/v1/", mock.Address))
+	require.NoError(t, err)
+
+	worker := NewWorker(mockClient, nil, nil)
+
+	tests := map[string]struct {
+		recordCache []*dns.Record
+		want        []*HTTPSDTarget
+	}{
+		"empty_record_cache": {recordCache: []*dns.Record{}, want: nil},
+		"some_record_cache":  {recordCache: mockDnsRecordCache, want: mockSDTargetCache},
+	}
+
+	for name, tc := range tests {
+		worker.recordCache = tc.recordCache
+
+		t.Run(name, func(t *testing.T) {
+			var got []*HTTPSDTarget
+			for _, record := range tc.recordCache {
+				got = append(got, recordAsPrometheusTarget(record))
+			}
+
+			require.Equal(t, tc.want, got)
+
+			// clear test cases for next iteration
+			mock.ClearTestCases()
+		})
+	}
+}
+
 func TestRefreshRecordData(t *testing.T) {
 	mock, doer, err := mockns1.New(t)
 	require.Nil(t, err)
@@ -142,16 +254,17 @@ func TestRefreshRecordData(t *testing.T) {
 	mockClient.Endpoint, err = url.Parse(fmt.Sprintf("https://%s/v1/", mock.Address))
 	require.NoError(t, err)
 
+	worker := NewWorker(mockClient, nil, nil)
+
 	tests := map[string]struct {
 		zoneCache map[string]*ns1_internal.Zone
 		want      []*dns.Record
 	}{
-		"empty_zone_cache": {zoneCache: map[string]*ns1_internal.Zone{}, want: []*dns.Record{}},
+		"empty_zone_cache": {zoneCache: map[string]*ns1_internal.Zone{}, want: nil},
 		"some_zone_cache":  {zoneCache: mockZoneCache, want: mockDnsRecordCache},
 	}
 
 	for name, tc := range tests {
-		worker := NewWorker(mockClient, nil, nil)
 		worker.zoneCache = tc.zoneCache
 
 		t.Run(name, func(t *testing.T) {
@@ -167,6 +280,94 @@ func TestRefreshRecordData(t *testing.T) {
 
 			// clear test cases for next iteration
 			mock.ClearTestCases()
+		})
+	}
+}
+
+func TestRefreshPrometheusTargetData(t *testing.T) {
+	mock, doer, err := mockns1.New(t)
+	require.Nil(t, err)
+	defer mock.Shutdown()
+
+	mockClient := api.NewClient(doer, api.SetAPIKey("mockAPIKey"))
+	mockClient.Endpoint, err = url.Parse(fmt.Sprintf("https://%s/v1/", mock.Address))
+	require.NoError(t, err)
+
+	worker := NewWorker(mockClient, nil, nil)
+
+	tests := map[string]struct {
+		recordCache []*dns.Record
+		want        []*HTTPSDTarget
+	}{
+		"empty_record_cache": {recordCache: []*dns.Record{}, want: nil},
+		"some_record_cache":  {recordCache: mockDnsRecordCache, want: mockSDTargetCache},
+	}
+
+	for name, tc := range tests {
+		worker.recordCache = tc.recordCache
+
+		t.Run(name, func(t *testing.T) {
+			worker.RefreshPrometheusTargetData()
+
+			require.Equal(t, tc.want, worker.targetCache)
+
+			// clear test cases for next iteration
+			mock.ClearTestCases()
+		})
+	}
+}
+
+func TestServeHTTP(t *testing.T) {
+	mock, doer, err := mockns1.New(t)
+	require.Nil(t, err)
+	defer mock.Shutdown()
+
+	mockClient := api.NewClient(doer, api.SetAPIKey("mockAPIKey"))
+	mockClient.Endpoint, err = url.Parse(fmt.Sprintf("https://%s/v1/", mock.Address))
+	require.NoError(t, err)
+
+	ts := httptest.NewServer(http.DefaultServeMux)
+	t.Cleanup(ts.Close)
+
+	worker := NewWorker(mockClient, nil, nil)
+	http.Handle("/sd", worker)
+	httpClient := http.Client{
+		Timeout: 30 * time.Second,
+	}
+
+	tests := map[string]struct {
+		targetCache []*HTTPSDTarget
+		want        []byte
+	}{
+		"empty_target_cache": {targetCache: []*HTTPSDTarget{}, want: []byte("[]")},
+		"some_target_cache":  {targetCache: mockSDTargetCache, want: mockTargetJSON},
+	}
+
+	for name, tc := range tests {
+		worker.targetCache = tc.targetCache
+
+		t.Run(name, func(t *testing.T) {
+			url, err := url.JoinPath(ts.URL, "sd")
+			require.NoError(t, err)
+			req, err := http.NewRequest("GET", url, nil)
+			require.NoError(t, err)
+
+			req.Header.Set("Accept", "application/json")
+
+			resp, err := httpClient.Do(req)
+			require.NoError(t, err)
+
+			defer func() {
+				io.Copy(io.Discard, resp.Body)
+				resp.Body.Close()
+			}()
+
+			require.Equal(t, resp.StatusCode, http.StatusOK)
+
+			got, err := io.ReadAll(resp.Body)
+			require.NoError(t, err)
+			require.True(t, bytes.Equal(tc.want, got))
+			require.Equal(t, string(tc.want), string(got))
 		})
 	}
 }
