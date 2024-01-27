@@ -90,51 +90,51 @@ var (
 
 	flagNS1ExporterEnableRecordQPS = kingpin.Flag(
 		"ns1.exporter-enable-record-qps",
-		"Whether or not to enable retrieving record-level QPS stats from the NS1 API",
+		"Whether or not to enable retrieving record-level QPS stats from the NS1 API. Default is enabled.",
 	).Default("true").Bool()
 
 	flagNS1ExporterEnableZoneQPS = kingpin.Flag(
 		"ns1.exporter-enable-zone-qps",
-		"Whether or not to enable retrieving zone-level QPS stats from the NS1 API (overridden by `--ns1.enable-record-qps`)",
+		"Whether or not to enable retrieving zone-level QPS stats from the NS1 API (overridden by `--ns1.enable-record-qps`). Default is enabled.",
 	).Default("true").Bool()
 
 	flagNS1ExporterZoneBlacklistRegex = kingpin.Flag(
 		"ns1.exporter-zone-blacklist",
-		"A regular expression of zone(s) the exporter is not allowed to query qps stats for (takes precedence over --ns1.exporter-zone-whitelist)",
+		"A regular expression of zone(s) the exporter is not allowed to query qps stats for (takes precedence over --ns1.exporter-zone-whitelist).",
 	).Default("").Regexp()
 
 	flagNS1ExporterZoneWhitelistRegex = kingpin.Flag(
 		"ns1.exporter-zone-whitelist",
-		"A regular expression of zone(s) the exporter is allowed to query qps stats for",
+		"A regular expression of zone(s) the exporter is allowed to query qps stats for.",
 	).Default("").Regexp()
 
 	flagNS1EnableSD = kingpin.Flag(
 		"ns1.enable-service-discovery",
-		"Whether or not to enable an HTTP endpoint to expose NS1 DNS records as HTTP service discovery targets",
+		"Whether or not to enable an HTTP endpoint to expose NS1 DNS records as HTTP service discovery targets. Default is disabled.",
 	).Default("false").Bool()
 
 	flagNS1SDRefreshInterval = kingpin.Flag(
 		"ns1.sd-refresh-interval",
-		"The interval at which targets for Prometheus HTTP service discovery will be refreshed from the NS1 API",
+		"The interval at which targets for Prometheus HTTP service discovery will be refreshed from the NS1 API.",
 	).Default("5m").Duration()
 
 	flagNS1SDZoneBlacklistRegex = kingpin.Flag(
 		"ns1.sd-zone-blacklist",
-		"A regular expression of zone(s) that the service discovery mechanism will not provide targets for (takes precedence over --ns1.sd-zone-whitelist)",
+		"A regular expression of zone(s) that the service discovery mechanism will not provide targets for (takes precedence over --ns1.sd-zone-whitelist).",
 	).Default("").Regexp()
 
 	flagNS1SDZoneWhitelistRegex = kingpin.Flag(
 		"ns1.sd-zone-whitelist",
-		"A regular expression of zone(s) that the service discovery mechanism will provide targets for",
+		"A regular expression of zone(s) that the service discovery mechanism will provide targets for.",
 	).Default("").Regexp()
 
 	flagNS1SDRecordTypeRegex = kingpin.Flag(
 		"ns1.sd-record-type",
-		"A regular expression of record types that the service discovery mechanism will provide targets for",
+		"A regular expression of record types that the service discovery mechanism will provide targets for.",
 	).Default("").Regexp()
 
 	flagRuntimeGOMAXPROCS = kingpin.Flag(
-		"runtime.gomaxprocs", "The target number of CPUs Go will run on (GOMAXPROCS)",
+		"runtime.gomaxprocs", "The target number of CPUs Go will run on (GOMAXPROCS).",
 	).Envar("GOMAXPROCS").Default("1").Int()
 
 	toolkitFlags = kingpinflag.AddFlags(kingpin.CommandLine, fmt.Sprintf(":%d", defaultPort))
