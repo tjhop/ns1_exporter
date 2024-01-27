@@ -50,10 +50,6 @@ const (
 )
 
 var (
-	// pkg level logger
-	promlogConfig = &promlog.Config{}
-	logger        = promlog.New(promlogConfig)
-
 	// so. many. flags.
 	flagWebTelemetryPath = kingpin.Flag(
 		"web.telemetry-path",
@@ -141,11 +137,13 @@ var (
 )
 
 func main() {
+	promlogConfig := &promlog.Config{}
 	flag.AddFlags(kingpin.CommandLine, promlogConfig)
 	kingpin.Version(version.Print(programName))
 	kingpin.CommandLine.UsageWriter(os.Stdout)
 	kingpin.HelpFlag.Short('h')
 	kingpin.Parse()
+	logger := promlog.New(promlogConfig)
 
 	level.Info(logger).Log("msg", "Starting "+programName, "version", version.Version, "build_date", version.BuildDate, "commit", version.Commit, "go_version", runtime.Version())
 
@@ -157,10 +155,10 @@ func main() {
 	runtime.GOMAXPROCS(*flagRuntimeGOMAXPROCS)
 	level.Debug(logger).Log("msg", "Go MAXPROCS", "procs", runtime.GOMAXPROCS(0))
 
-	Run()
+	Run(logger)
 }
 
-func Run() {
+func Run(logger log.Logger) {
 	apiClient := ns1.NewClient(ns1.APIConfig{
 		Concurrency: *flagNS1Concurrency,
 		UserAgent:   fmt.Sprintf("ns1_exporter/%s", version.Version),
@@ -267,7 +265,7 @@ func Run() {
 	{
 		// web server
 		cancel := make(chan struct{})
-		server := setupServer(sdWorker)
+		server := setupServer(logger, sdWorker)
 
 		g.Add(
 			func() error {
@@ -297,7 +295,7 @@ func Run() {
 	level.Info(logger).Log("msg", programName+" finished. See you next time!")
 }
 
-func setupServer(sdWorker *sd.Worker) *http.Server {
+func setupServer(logger log.Logger, sdWorker *sd.Worker) *http.Server {
 	server := &http.Server{
 		ReadTimeout:  30 * time.Second,
 		WriteTimeout: 30 * time.Second,
