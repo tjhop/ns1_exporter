@@ -21,6 +21,7 @@ import (
 	"testing"
 
 	prom_testutil "github.com/prometheus/client_golang/prometheus/testutil"
+	"github.com/prometheus/common/promlog"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/ns1/ns1-go.v2/mockns1"
 	api "gopkg.in/ns1/ns1-go.v2/rest"
@@ -30,6 +31,8 @@ import (
 )
 
 var (
+	mockLogger = promlog.New(&promlog.Config{})
+
 	mockZoneCache = map[string]*ns1_internal.Zone{
 		"foo.bar": {Zone: "foo.bar", Records: []*ns1_internal.ZoneRecord{
 			{Domain: "foo.bar", ShortAns: []string{"dns1.p01.nsone.net."}, Type: "NS"},
@@ -70,7 +73,7 @@ ns1_stats_queries_per_second{record_name="",record_type="",zone_name=""} 10000
 `
 
 	for name, tc := range tests {
-		worker := NewWorker(mockClient, false, false, nil, nil)
+		worker := NewWorker(mockLogger, mockClient, false, false, nil, nil)
 		worker.zoneCache = mockZoneCache
 
 		t.Run(name, func(t *testing.T) {
@@ -123,7 +126,7 @@ ns1_stats_queries_per_second{record_name="",record_type="",zone_name="keep.me"} 
 `
 
 	for name, tc := range tests {
-		worker := NewWorker(mockClient, true, false, nil, nil)
+		worker := NewWorker(mockLogger, mockClient, true, false, nil, nil)
 		worker.zoneCache = mockZoneCache
 
 		t.Run(name, func(t *testing.T) {
@@ -182,7 +185,7 @@ ns1_stats_queries_per_second{record_name="test.keep.me",record_type="A",zone_nam
 `
 
 	for name, tc := range tests {
-		worker := NewWorker(mockClient, true, true, nil, nil)
+		worker := NewWorker(mockLogger, mockClient, true, true, nil, nil)
 		worker.zoneCache = mockZoneCache
 
 		t.Run(name, func(t *testing.T) {

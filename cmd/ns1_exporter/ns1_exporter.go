@@ -164,7 +164,7 @@ func Run(logger log.Logger) {
 		UserAgent:   fmt.Sprintf("ns1_exporter/%s", version.Version),
 		// EnableDDI:   *flagNS1EnableDDI,
 	})
-	exporterWorker := exporter.NewWorker(apiClient, *flagNS1ExporterEnableZoneQPS, *flagNS1ExporterEnableRecordQPS, *flagNS1ExporterZoneBlacklistRegex, *flagNS1ExporterZoneWhitelistRegex)
+	exporterWorker := exporter.NewWorker(logger, apiClient, *flagNS1ExporterEnableZoneQPS, *flagNS1ExporterEnableRecordQPS, *flagNS1ExporterZoneBlacklistRegex, *flagNS1ExporterZoneWhitelistRegex)
 	sdWorker := sd.NewWorker(apiClient, *flagNS1SDZoneBlacklistRegex, *flagNS1SDZoneWhitelistRegex, *flagNS1SDRecordTypeRegex)
 
 	var g run.Group
