@@ -1,7 +1,6 @@
 GOCMD := go
 GOFMT := ${GOCMD} fmt
 GOMOD := ${GOCMD} mod
-COMMIT := $(shell git rev-parse HEAD)
 RELEASE_CONTAINER_NAME := "ns1_exporter"
 
 ## help:			print this help message
