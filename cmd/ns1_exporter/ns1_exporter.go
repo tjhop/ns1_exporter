@@ -159,7 +159,14 @@ func main() {
 }
 
 func Run(logger log.Logger) {
+	token := os.Getenv("NS1_APIKEY")
+	if token == "" {
+		level.Error(logger).Log("err", "NS1_APIKEY environment variable is not set")
+		os.Exit(1)
+	}
+
 	apiClient := ns1.NewClient(ns1.APIConfig{
+		Token:       token,
 		Concurrency: *flagNS1Concurrency,
 		UserAgent:   fmt.Sprintf("ns1_exporter/%s", version.Version),
 		// EnableDDI:   *flagNS1EnableDDI,

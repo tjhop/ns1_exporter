@@ -17,7 +17,6 @@ package ns1
 import (
 	"crypto/tls"
 	"net/http"
-	"os"
 	"regexp"
 	"time"
 
@@ -30,6 +29,7 @@ import (
 )
 
 type APIConfig struct {
+	Token         string
 	Concurrency   int
 	Endpoint      string
 	TLSSkipVerify bool
@@ -66,14 +66,8 @@ type QPS struct {
 
 // NewClient creates a new NS1 API client based on the provided config
 func NewClient(config APIConfig) *api.Client {
-	token := os.Getenv("NS1_APIKEY")
-	if token == "" {
-		level.Error(logger).Log("err", "NS1_APIKEY environment variable is not set")
-		os.Exit(1)
-	}
-
 	httpClient := &http.Client{Timeout: time.Second * 15}
-	clientOpts := []func(*api.Client){api.SetAPIKey(token), api.SetFollowPagination(true), api.SetUserAgent(config.UserAgent)}
+	clientOpts := []func(*api.Client){api.SetAPIKey(config.Token), api.SetFollowPagination(true), api.SetUserAgent(config.UserAgent)}
 
 	if config.Endpoint != "" {
 		clientOpts = append(clientOpts, api.SetEndpoint(config.Endpoint))
