@@ -26,10 +26,10 @@ import (
 	"time"
 
 	promModel "github.com/prometheus/common/model"
+	"github.com/prometheus/common/promlog"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/ns1/ns1-go.v2/mockns1"
 	api "gopkg.in/ns1/ns1-go.v2/rest"
-	"github.com/prometheus/common/promlog"
 	"gopkg.in/ns1/ns1-go.v2/rest/model/data"
 	"gopkg.in/ns1/ns1-go.v2/rest/model/dns"
 	"gopkg.in/ns1/ns1-go.v2/rest/model/filter"

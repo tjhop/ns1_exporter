@@ -83,7 +83,7 @@ func (w *Worker) Collect(ch chan<- prometheus.Metric) {
 // RefreshZoneData updates the data for each of the zones in the worker's zone list by querying the NS1 API, parses the data to structs that serve as internal counterparts to the NS1 API's dns.Record and dns.Zone, and then updating the worker's internal map of zones. This internal map is used as a cache to respond to respond to HTTP requests.
 func (w *Worker) RefreshZoneData() {
 	getRecords := w.EnableRecordQPS || w.EnableZoneQPS
-	w.zoneCache = ns1_internal.RefreshZoneData(w.client, getRecords, w.ZoneBlacklist, w.ZoneWhitelist)
+	w.zoneCache = ns1_internal.RefreshZoneData(w.logger, w.client, getRecords, w.ZoneBlacklist, w.ZoneWhitelist)
 	level.Debug(w.logger).Log("msg", "Worker zone cache updated", "num_zones", len(w.zoneCache))
 
 	if getRecords {

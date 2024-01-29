@@ -234,7 +234,7 @@ func (w *Worker) RefreshPrometheusTargetData() {
 }
 
 func (w *Worker) RefreshZoneData() {
-	w.zoneCache = ns1_internal.RefreshZoneData(w.client, true, w.ZoneBlacklist, w.ZoneWhitelist)
+	w.zoneCache = ns1_internal.RefreshZoneData(w.logger, w.client, true, w.ZoneBlacklist, w.ZoneWhitelist)
 }
 
 func (w *Worker) RefreshRecordData() {

@@ -20,10 +20,15 @@ import (
 	"regexp"
 	"testing"
 
+	"github.com/prometheus/common/promlog"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/ns1/ns1-go.v2/mockns1"
 	api "gopkg.in/ns1/ns1-go.v2/rest"
 	"gopkg.in/ns1/ns1-go.v2/rest/model/dns"
+)
+
+var (
+	mockLogger = promlog.New(&promlog.Config{})
 )
 
 func TestRefreshZoneData(t *testing.T) {
@@ -89,7 +94,7 @@ func TestRefreshZoneData(t *testing.T) {
 				getRecords,
 			))
 
-			got := RefreshZoneData(mockClient, getRecords, tc.zoneBlacklist, tc.zoneWhitelist)
+			got := RefreshZoneData(mockLogger, mockClient, getRecords, tc.zoneBlacklist, tc.zoneWhitelist)
 			require.Equal(t, tc.want, got)
 			require.Equal(t, tc.expectedLen, len(got))
 			for _, zone := range got {

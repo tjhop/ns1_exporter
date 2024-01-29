@@ -21,16 +21,12 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
-	"github.com/prometheus/common/promlog"
 	api "gopkg.in/ns1/ns1-go.v2/rest"
 	"gopkg.in/ns1/ns1-go.v2/rest/model/dns"
 
 	"github.com/tjhop/ns1_exporter/pkg/metrics"
-)
-
-var (
-	logger = promlog.New(&promlog.Config{})
 )
 
 type APIConfig struct {
@@ -105,7 +101,7 @@ func NewClient(config APIConfig) *api.Client {
 	return c
 }
 
-func RefreshZoneData(c *api.Client, getRecords bool, zoneBlacklist, zoneWhitelist *regexp.Regexp) map[string]*Zone {
+func RefreshZoneData(logger log.Logger, c *api.Client, getRecords bool, zoneBlacklist, zoneWhitelist *regexp.Regexp) map[string]*Zone {
 	zMap := make(map[string]*Zone)
 
 	zones, _, err := c.Zones.List()
