@@ -23,9 +23,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
 	promModel "github.com/prometheus/common/model"
-	"github.com/prometheus/common/promlog"
 	"github.com/samber/lo"
 	api "gopkg.in/ns1/ns1-go.v2/rest"
 	"gopkg.in/ns1/ns1-go.v2/rest/model/data"
@@ -34,10 +34,6 @@ import (
 
 	"github.com/tjhop/ns1_exporter/pkg/metrics"
 	ns1_internal "github.com/tjhop/ns1_exporter/pkg/ns1"
-)
-
-var (
-	logger = promlog.New(&promlog.Config{})
 )
 
 const (
@@ -71,18 +67,20 @@ type Worker struct {
 	ZoneWhitelist       *regexp.Regexp
 	RecordTypeWhitelist *regexp.Regexp
 
+	logger      log.Logger
 	client      *api.Client
 	zoneCache   map[string]*ns1_internal.Zone
 	recordCache []*dns.Record
 	targetCache []*HTTPSDTarget
 }
 
-func NewWorker(client *api.Client, blacklist, whitelist, recordType *regexp.Regexp) *Worker {
+func NewWorker(logger log.Logger, client *api.Client, blacklist, whitelist, recordType *regexp.Regexp) *Worker {
 	worker := Worker{
 		client:              client,
 		ZoneBlacklist:       blacklist,
 		ZoneWhitelist:       whitelist,
 		RecordTypeWhitelist: recordType,
+		logger:              log.With(logger, "worker", "http_sd"),
 	}
 
 	return &worker
@@ -232,7 +230,7 @@ func (w *Worker) RefreshPrometheusTargetData() {
 	}
 
 	w.targetCache = data
-	level.Debug(logger).Log("msg", "Worker Prometheus target group updated", "worker", "http_sd", "num_targets", len(w.targetCache))
+	level.Debug(w.logger).Log("msg", "Worker Prometheus target group updated", "num_targets", len(w.targetCache))
 }
 
 func (w *Worker) RefreshZoneData() {
@@ -249,7 +247,7 @@ func (w *Worker) RefreshRecordData() {
 			for _, r := range zData.Records {
 				if !w.RecordTypeWhitelist.MatchString(r.Type) {
 					// if record type not in whitelist, log it and skip it
-					level.Debug(logger).Log("msg", "skipping record because it doesn't match whitelist regex", "worker", "http_sd", "record", r.Domain, "record_type_regex", w.RecordTypeWhitelist.String())
+					level.Debug(w.logger).Log("msg", "skipping record because it doesn't match whitelist regex", "record", r.Domain, "record_type_regex", w.RecordTypeWhitelist.String())
 					continue
 				}
 				filteredRecords = append(filteredRecords, r)
@@ -261,7 +259,7 @@ func (w *Worker) RefreshRecordData() {
 		for _, r := range zData.Records {
 			record, _, err := w.client.Records.Get(zData.Zone, r.Domain, r.Type)
 			if err != nil {
-				level.Error(logger).Log("msg", "Failed to get record data from NS1 API", "err", err.Error(), "worker", "http_sd", "zone_name", zName, "record_domain", r.Domain, "record_type", r.Type)
+				level.Error(w.logger).Log("msg", "Failed to get record data from NS1 API", "err", err.Error(), "zone_name", zName, "record_domain", r.Domain, "record_type", r.Type)
 				metrics.MetricExporterNS1APIFailures.Inc()
 				continue
 			}
@@ -270,21 +268,21 @@ func (w *Worker) RefreshRecordData() {
 	}
 
 	w.recordCache = records
-	level.Debug(logger).Log("msg", "Worker record cache updated", "worker", "http_sd", "num_records", len(w.recordCache))
+	level.Debug(w.logger).Log("msg", "Worker record cache updated", "num_records", len(w.recordCache))
 }
 
 func (w *Worker) Refresh() {
-	level.Info(logger).Log("msg", "Updating record data from NS1 API", "worker", "http_sd")
+	level.Info(w.logger).Log("msg", "Updating record data from NS1 API")
 	w.RefreshZoneData()
 	w.RefreshRecordData()
-	level.Info(logger).Log("msg", "Updating prometheus target data from cached record data", "worker", "http_sd")
+	level.Info(w.logger).Log("msg", "Updating prometheus target data from cached record data")
 	w.RefreshPrometheusTargetData()
 }
 
 func (w *Worker) ServeHTTP(writer http.ResponseWriter, req *http.Request) {
 	buf, err := json.MarshalIndent(w.targetCache, "", "    ")
 	if err != nil {
-		level.Error(logger).Log("msg", "Failed to convert DNS records from NS1 API into Prometheus Targets", "err", err.Error(), "worker", "http_sd")
+		level.Error(w.logger).Log("msg", "Failed to convert DNS records from NS1 API into Prometheus Targets", "err", err.Error())
 		http.Error(writer, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -292,6 +290,6 @@ func (w *Worker) ServeHTTP(writer http.ResponseWriter, req *http.Request) {
 	writer.Header().Set("content-type", "application/json; charset=utf-8")
 	writer.WriteHeader(http.StatusOK)
 	if bytesWritten, err := writer.Write(buf); err != nil {
-		level.Error(logger).Log("msg", "Failed to write full HTTP response", "err", err.Error(), "worker", "http_sd", "bytes", bytesWritten)
+		level.Error(w.logger).Log("msg", "Failed to write full HTTP response", "err", err.Error(), "bytes", bytesWritten)
 	}
 }

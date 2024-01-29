@@ -29,6 +29,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"gopkg.in/ns1/ns1-go.v2/mockns1"
 	api "gopkg.in/ns1/ns1-go.v2/rest"
+	"github.com/prometheus/common/promlog"
 	"gopkg.in/ns1/ns1-go.v2/rest/model/data"
 	"gopkg.in/ns1/ns1-go.v2/rest/model/dns"
 	"gopkg.in/ns1/ns1-go.v2/rest/model/filter"
@@ -37,6 +38,8 @@ import (
 )
 
 var (
+	mockLogger = promlog.New(&promlog.Config{})
+
 	mockZoneCache = map[string]*ns1_internal.Zone{
 		"foo.bar": {Zone: "foo.bar", Records: []*ns1_internal.ZoneRecord{
 			{Domain: "test.foo.bar", ShortAns: []string{"1.2.3.4", "5.6.7.8", "127.0.0.1"}, Type: "A"},
@@ -219,7 +222,7 @@ func TestRecordAsPrometheusTarget(t *testing.T) {
 	mockClient.Endpoint, err = url.Parse(fmt.Sprintf("https://%s/v1/", mock.Address))
 	require.NoError(t, err)
 
-	worker := NewWorker(mockClient, nil, nil, nil)
+	worker := NewWorker(mockLogger, mockClient, nil, nil, nil)
 
 	tests := map[string]struct {
 		recordCache []*dns.Record
@@ -266,7 +269,7 @@ func TestRefreshRecordData(t *testing.T) {
 	}
 
 	for name, tc := range tests {
-		worker := NewWorker(mockClient, nil, nil, tc.recordTypeWhitelist)
+		worker := NewWorker(mockLogger, mockClient, nil, nil, tc.recordTypeWhitelist)
 		worker.zoneCache = tc.zoneCache
 
 		t.Run(name, func(t *testing.T) {
@@ -295,7 +298,7 @@ func TestRefreshPrometheusTargetData(t *testing.T) {
 	mockClient.Endpoint, err = url.Parse(fmt.Sprintf("https://%s/v1/", mock.Address))
 	require.NoError(t, err)
 
-	worker := NewWorker(mockClient, nil, nil, nil)
+	worker := NewWorker(mockLogger, mockClient, nil, nil, nil)
 
 	tests := map[string]struct {
 		recordCache []*dns.Record
@@ -331,7 +334,7 @@ func TestServeHTTP(t *testing.T) {
 	ts := httptest.NewServer(http.DefaultServeMux)
 	t.Cleanup(ts.Close)
 
-	worker := NewWorker(mockClient, nil, nil, nil)
+	worker := NewWorker(mockLogger, mockClient, nil, nil, nil)
 	http.Handle("/sd", worker)
 	httpClient := http.Client{
 		Timeout: 30 * time.Second,

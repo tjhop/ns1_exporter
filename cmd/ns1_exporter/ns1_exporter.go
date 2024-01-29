@@ -165,7 +165,7 @@ func Run(logger log.Logger) {
 		// EnableDDI:   *flagNS1EnableDDI,
 	})
 	exporterWorker := exporter.NewWorker(logger, apiClient, *flagNS1ExporterEnableZoneQPS, *flagNS1ExporterEnableRecordQPS, *flagNS1ExporterZoneBlacklistRegex, *flagNS1ExporterZoneWhitelistRegex)
-	sdWorker := sd.NewWorker(apiClient, *flagNS1SDZoneBlacklistRegex, *flagNS1SDZoneWhitelistRegex, *flagNS1SDRecordTypeRegex)
+	sdWorker := sd.NewWorker(logger, apiClient, *flagNS1SDZoneBlacklistRegex, *flagNS1SDZoneWhitelistRegex, *flagNS1SDRecordTypeRegex)
 
 	var g run.Group
 	{
