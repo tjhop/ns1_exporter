@@ -158,7 +158,6 @@ func (w *Worker) RefreshQPSRecordData() {
 		numRecords += len(z.Records)
 	}
 	level.Debug(w.logger).Log("msg", "updating worker qps cache", "zone_count", len(w.zoneCache), "record_count", fmt.Sprintf("%d", numRecords))
-	// TODO: this may be a good place to log a warning if a user has a crap ton of records and we're worried about api calls or anything
 
 	var cache []*ns1_internal.QPS
 
