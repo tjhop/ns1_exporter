@@ -22,12 +22,14 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
 	promModel "github.com/prometheus/common/model"
 	"github.com/samber/lo"
 	api "gopkg.in/ns1/ns1-go.v2/rest"
+	"gopkg.in/ns1/ns1-go.v2/rest/model/account"
 	"gopkg.in/ns1/ns1-go.v2/rest/model/data"
 	"gopkg.in/ns1/ns1-go.v2/rest/model/dns"
 	"gopkg.in/ns1/ns1-go.v2/rest/model/filter"
@@ -67,11 +69,13 @@ type Worker struct {
 	ZoneWhitelist       *regexp.Regexp
 	RecordTypeWhitelist *regexp.Regexp
 
-	logger      log.Logger
-	client      *api.Client
-	zoneCache   map[string]*ns1_internal.Zone
-	recordCache []*dns.Record
-	targetCache []*HTTPSDTarget
+	logger               log.Logger
+	client               *api.Client
+	zoneCache            map[string]*ns1_internal.Zone
+	recordCache          []*dns.Record
+	targetCache          []*HTTPSDTarget
+	lastRefreshTimestamp time.Time
+	pollCount            int
 }
 
 func NewWorker(logger log.Logger, client *api.Client, blacklist, whitelist, recordType *regexp.Regexp) *Worker {
@@ -271,12 +275,59 @@ func (w *Worker) RefreshRecordData() {
 	level.Debug(w.logger).Log("msg", "Worker record cache updated", "num_records", len(w.recordCache))
 }
 
-func (w *Worker) Refresh() {
+func (w *Worker) RefreshData() {
 	level.Info(w.logger).Log("msg", "Updating record data from NS1 API")
 	w.RefreshZoneData()
 	w.RefreshRecordData()
 	level.Info(w.logger).Log("msg", "Updating prometheus target data from cached record data")
 	w.RefreshPrometheusTargetData()
+}
+
+func (w *Worker) Refresh() {
+	needsRefresh := true
+	ts := time.Now().UTC()
+
+	// if we already have data, we need to poll for activity and see if we should still refresh our data set or skip
+	if w.recordCache != nil {
+		params := []api.Param{
+			{Key: "start", Value: strconv.FormatInt(w.lastRefreshTimestamp.Unix(), 10)},
+			{Key: "limit", Value: "1000"},
+		}
+		activity, _, err := w.client.Activity.List(params...)
+		if err != nil {
+			level.Error(w.logger).Log("msg", "Failed to get account activity from NS1 API", "err", err.Error())
+			metrics.MetricExporterNS1APIFailures.Inc()
+		}
+		w.pollCount++
+
+		switch len(activity) {
+		case 0:
+			if w.pollCount < 10 {
+				needsRefresh = false
+			}
+		default:
+			// activity detected, filter to only care about activity that can affect zones/records, that's what we care about
+			var filteredActivity []*account.Activity
+			for _, a := range activity {
+				switch a.ResourceType {
+				case "dns_zone", "record", "notify_list", "datasource", "datafeed", "job":
+					filteredActivity = append(filteredActivity, a)
+				default:
+				}
+			}
+
+			if len(filteredActivity) == 0 && w.pollCount < 10 {
+				needsRefresh = false
+			}
+		}
+	}
+
+	if needsRefresh {
+		w.RefreshData()
+		w.pollCount = 0
+	}
+
+	w.lastRefreshTimestamp = ts
 }
 
 func (w *Worker) ServeHTTP(writer http.ResponseWriter, req *http.Request) {

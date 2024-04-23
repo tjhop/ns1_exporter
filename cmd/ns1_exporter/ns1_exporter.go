@@ -112,7 +112,7 @@ var (
 	flagNS1SDRefreshInterval = kingpin.Flag(
 		"ns1.sd-refresh-interval",
 		"The interval at which targets for Prometheus HTTP service discovery will be refreshed from the NS1 API.",
-	).Default("5m").Duration()
+	).Default("1m").Duration()
 
 	flagNS1SDZoneBlacklistRegex = kingpin.Flag(
 		"ns1.sd-zone-blacklist",
