@@ -261,6 +261,7 @@ func (w *Worker) RefreshRecordData() {
 		}
 
 		for _, r := range zData.Records {
+			level.Debug(w.logger).Log("msg", "Refreshing record data from NS1 API", "zone_name", zName, "record_domain", r.Domain, "record_type", r.Type)
 			record, _, err := w.client.Records.Get(zData.Zone, r.Domain, r.Type)
 			if err != nil {
 				level.Error(w.logger).Log("msg", "Failed to get record data from NS1 API", "err", err.Error(), "zone_name", zName, "record_domain", r.Domain, "record_type", r.Type)
@@ -293,6 +294,7 @@ func (w *Worker) Refresh() {
 			{Key: "start", Value: strconv.FormatInt(w.lastRefreshTimestamp.Unix(), 10)},
 			{Key: "limit", Value: "1000"},
 		}
+		level.Debug(w.logger).Log("msg", "Refreshing account activity from NS1 API")
 		activity, _, err := w.client.Activity.List(params...)
 		if err != nil {
 			level.Error(w.logger).Log("msg", "Failed to get account activity from NS1 API", "err", err.Error())
