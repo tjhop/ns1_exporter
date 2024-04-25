@@ -34,7 +34,7 @@ _NOTE_: Installing via this method will result in a build without embedded metad
 ```shell
 git clone https://github.com/tjhop/ns1_exporter.git
 cd ns1_exporter
-goreleaser build --snapshot --clean --single-target
+make build
 NS1_APIKEY="<api-token>" ./dist/ns1_exporter_linux_amd64_v1/ns1_exporter <flags>
 ```
 
