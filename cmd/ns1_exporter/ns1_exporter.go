@@ -23,6 +23,7 @@ import (
 	"os"
 	"os/signal"
 	"runtime"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -238,6 +239,7 @@ func Run(logger log.Logger) {
 				case true:
 					ticker := time.NewTicker(*flagNS1SDRefreshInterval)
 					defer ticker.Stop()
+					level.Info(logger).Log("msg", "Prometheus HTTP service discovery enabled", "sd_refresh_interval", strconv.FormatBool(*flagNS1EnableSD))
 
 					for {
 						// work around the fact that tickers
