@@ -10,7 +10,7 @@ require (
 	github.com/prometheus/common v0.53.0
 	github.com/prometheus/exporter-toolkit v0.11.0
 	github.com/samber/lo v1.39.0
-	github.com/stretchr/testify v1.8.4
+	github.com/stretchr/testify v1.9.0
 	gopkg.in/ns1/ns1-go.v2 v2.10.0
 )
 
