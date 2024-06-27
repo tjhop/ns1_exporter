@@ -11,6 +11,9 @@ builds:
       - -X github.com/tjhop/ns1_exporter/internal/version.Commit={{ .Commit }}
     binary: ns1_exporter
     main: './cmd/ns1_exporter'
+gomod:
+  proxy: true
+  mod: mod
 dockers:
   # build latest and specific tag version images
   - image_templates:
