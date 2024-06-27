@@ -2,6 +2,7 @@ GOCMD := go
 GOFMT := ${GOCMD} fmt
 GOMOD := ${GOCMD} mod
 RELEASE_CONTAINER_NAME := "ns1_exporter"
+GOLANGCILINT_CACHE := ${CURDIR}/.golangci-lint/build/cache
 
 ## help:			print this help message
 .PHONY: help
@@ -19,7 +20,8 @@ fmt:
 
 ## lint:			run linters
 lint:
-	golangci-lint run
+	mkdir -p ${GOLANGCILINT_CACHE} || true
+	podman run --rm -v ${CURDIR}:/app -v ${GOLANGCILINT_CACHE}:/root/.cache -w /app docker.io/golangci/golangci-lint:latest golangci-lint run -v
 	nilaway ./...
 
 ## binary:		build a binary
