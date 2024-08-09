@@ -4,6 +4,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/tjhop/ns1_exporter)](https://goreportcard.com/report/github.com/tjhop/ns1_exporter)
 [![golangci-lint](https://github.com/tjhop/ns1_exporter/actions/workflows/golangci-lint.yaml/badge.svg)](https://github.com/tjhop/ns1_exporter/actions/workflows/golangci-lint.yaml)
 [![Latest Release](https://img.shields.io/github/v/release/tjhop/ns1_exporter)](https://github.com/tjhop/ns1_exporter/releases/latest)
+[![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/tjhop/ns1_exporter/total)](https://github.com/tjhop/ns1_exporter/releases/latest)
 
 Prometheus Exporter for NS1 DNS query statistics, exposed by the [NS1 API](https://ns1.com/api). In addition to Prometheus metrics, the exporter can also be configured to serve a [Prometheus HTTP Service Discovery Compatible](https://prometheus.io/docs/prometheus/latest/http_sd/#requirements-of-http-sd-endpoints) list of targets based on the DNS records associated with the zones on the account.
 
