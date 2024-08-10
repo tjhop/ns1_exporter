@@ -34,7 +34,6 @@ type APIConfig struct {
 	Endpoint      string
 	TLSSkipVerify bool
 	UserAgent     string
-	EnableDDI     bool
 }
 
 // ZoneRecord is an internal struct that is essentially the same thing as a
@@ -78,10 +77,6 @@ func NewClient(config APIConfig) *api.Client {
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		}
 		httpClient.Transport = tr
-	}
-
-	if config.EnableDDI {
-		clientOpts = append(clientOpts, api.SetDDIAPI())
 	}
 
 	c := api.NewClient(httpClient, clientOpts...)

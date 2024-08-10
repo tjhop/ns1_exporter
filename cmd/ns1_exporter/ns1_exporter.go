@@ -79,12 +79,6 @@ var (
 		"NS1 API request concurrency. Default (0) uses NS1 Go SDK sleep strategry. 60 may be good balance between performance and reduced risk of HTTP 429, see https://pkg.go.dev/gopkg.in/ns1/ns1-go.v2/rest and exporter documentation for more information.",
 	).Default("0").Int()
 
-	// TODO: allow enabling DDI at some poitn? do we need it for anything this project does?
-	// flagNS1EnableDDI = kingpin.Flag(
-	// "ns1.enable-ddi",
-	// "Whether or not to enable DDI in the NS1 API client",
-	// ).Bool()
-
 	flagNS1ExporterEnableRecordQPS = kingpin.Flag(
 		"ns1.exporter-enable-record-qps",
 		"Whether or not to enable retrieving record-level QPS stats from the NS1 API. Default is enabled.",
@@ -170,7 +164,6 @@ func Run(logger log.Logger) {
 		Token:       token,
 		Concurrency: *flagNS1Concurrency,
 		UserAgent:   fmt.Sprintf("ns1_exporter/%s", version.Version),
-		// EnableDDI:   *flagNS1EnableDDI,
 	})
 	exporterWorker := exporter.NewWorker(logger, apiClient, *flagNS1ExporterEnableZoneQPS, *flagNS1ExporterEnableRecordQPS, *flagNS1ExporterZoneBlacklistRegex, *flagNS1ExporterZoneWhitelistRegex)
 	sdWorker := sd.NewWorker(logger, apiClient, *flagNS1SDZoneBlacklistRegex, *flagNS1SDZoneWhitelistRegex, *flagNS1SDRecordTypeRegex)
