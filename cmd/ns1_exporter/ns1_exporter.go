@@ -17,7 +17,7 @@ package main
 import (
 	"context"
 	"fmt"
-	stdlog "log"
+	"log/slog"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
@@ -28,13 +28,11 @@ import (
 	"time"
 
 	"github.com/alecthomas/kingpin/v2"
-	"github.com/go-kit/log"
-	"github.com/go-kit/log/level"
 	"github.com/oklog/run"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/prometheus/common/promlog"
-	"github.com/prometheus/common/promlog/flag"
+	"github.com/prometheus/common/promslog"
+	"github.com/prometheus/common/promslog/flag"
 	"github.com/prometheus/exporter-toolkit/web"
 	"github.com/prometheus/exporter-toolkit/web/kingpinflag"
 
@@ -132,31 +130,31 @@ var (
 )
 
 func main() {
-	promlogConfig := &promlog.Config{}
-	flag.AddFlags(kingpin.CommandLine, promlogConfig)
+	promslogConfig := &promslog.Config{}
+	flag.AddFlags(kingpin.CommandLine, promslogConfig)
 	kingpin.Version(version.Print(programName))
 	kingpin.CommandLine.UsageWriter(os.Stdout)
 	kingpin.HelpFlag.Short('h')
 	kingpin.Parse()
-	logger := promlog.New(promlogConfig)
+	logger := promslog.New(promslogConfig)
 
-	level.Info(logger).Log("msg", "Starting "+programName, "version", version.Version, "build_date", version.BuildDate, "commit", version.Commit, "go_version", runtime.Version())
+	logger.Info("Starting "+programName, "version", version.Version, "build_date", version.BuildDate, "commit", version.Commit, "go_version", runtime.Version())
 
 	// nicely yell at people needlessly running as root
 	if os.Geteuid() == 0 {
-		level.Warn(logger).Log("msg", programName+"is running as root user. This exporter is designed to run as unprivileged user, root is not required.")
+		logger.Warn(programName + "is running as root user. This exporter is designed to run as unprivileged user, root is not required.")
 	}
 
 	runtime.GOMAXPROCS(*flagRuntimeGOMAXPROCS)
-	level.Debug(logger).Log("msg", "Go MAXPROCS", "procs", runtime.GOMAXPROCS(0))
+	logger.Debug("Go MAXPROCS", "procs", runtime.GOMAXPROCS(0))
 
 	Run(logger)
 }
 
-func Run(logger log.Logger) {
+func Run(logger *slog.Logger) {
 	token := os.Getenv("NS1_APIKEY")
 	if token == "" {
-		level.Error(logger).Log("err", "NS1_APIKEY environment variable is not set")
+		logger.Error("NS1_APIKEY environment variable is not set")
 		os.Exit(1)
 	}
 
@@ -178,7 +176,7 @@ func Run(logger log.Logger) {
 			func() error {
 				select {
 				case sig := <-term:
-					level.Warn(logger).Log("msg", "Caught signal, exiting gracefully.", "signal", sig.String())
+					logger.Warn("Caught signal, exiting gracefully.", "signal", sig.String())
 				case <-cancel:
 				}
 
@@ -232,7 +230,7 @@ func Run(logger log.Logger) {
 				case true:
 					ticker := time.NewTicker(*flagNS1SDRefreshInterval)
 					defer ticker.Stop()
-					level.Info(logger).Log("msg", "Prometheus HTTP service discovery enabled", "sd_refresh_interval", strconv.FormatBool(*flagNS1EnableSD))
+					logger.Info("Prometheus HTTP service discovery enabled", "sd_refresh_interval", strconv.FormatBool(*flagNS1EnableSD))
 
 					for {
 						// work around the fact that tickers
@@ -272,7 +270,7 @@ func Run(logger log.Logger) {
 		g.Add(
 			func() error {
 				if err := web.ListenAndServe(server, toolkitFlags, logger); err != http.ErrServerClosed {
-					level.Error(logger).Log("err", err)
+					logger.Error("Failed to run webserver", "err", err)
 					return err
 				}
 
@@ -283,7 +281,7 @@ func Run(logger log.Logger) {
 			func(error) {
 				if err := server.Shutdown(context.Background()); err != nil {
 					// Error from closing listeners, or context timeout:
-					level.Error(logger).Log("err", err)
+					logger.Error("Failed to close listeners/context timeout", "err", err)
 				}
 				close(cancel)
 			},
@@ -291,13 +289,13 @@ func Run(logger log.Logger) {
 	}
 
 	if err := g.Run(); err != nil {
-		level.Error(logger).Log("err", err)
+		logger.Error("Failed to run ok-log/run daemon goroutines", "err", err)
 		os.Exit(1)
 	}
-	level.Info(logger).Log("msg", programName+" finished. See you next time!")
+	logger.Info(programName + " finished. See you next time!")
 }
 
-func setupServer(logger log.Logger, sdWorker *sd.Worker) *http.Server {
+func setupServer(logger *slog.Logger, sdWorker *sd.Worker) *http.Server {
 	server := &http.Server{
 		ReadTimeout:  30 * time.Second,
 		WriteTimeout: 30 * time.Second,
@@ -307,7 +305,7 @@ func setupServer(logger log.Logger, sdWorker *sd.Worker) *http.Server {
 	metricsHandler := promhttp.HandlerFor(
 		prometheus.Gatherers{metrics.Registry},
 		promhttp.HandlerOpts{
-			ErrorLog:            stdlog.New(log.NewStdlibAdapter(level.Error(logger)), "", 0),
+			ErrorLog:            slog.NewLogLogger(logger.Handler(), slog.LevelError),
 			ErrorHandling:       promhttp.ContinueOnError,
 			MaxRequestsInFlight: *flagWebMaxRequests,
 			Registry:            metrics.Registry,
@@ -345,7 +343,7 @@ func setupServer(logger log.Logger, sdWorker *sd.Worker) *http.Server {
 		}
 		landingPage, err := web.NewLandingPage(landingConfig)
 		if err != nil {
-			level.Error(logger).Log("err", err)
+			logger.Error("Failed to create landing page", "err", err)
 			os.Exit(1)
 		}
 		http.Handle("/", landingPage)

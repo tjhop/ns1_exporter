@@ -26,7 +26,7 @@ import (
 	"time"
 
 	promModel "github.com/prometheus/common/model"
-	"github.com/prometheus/common/promlog"
+	"github.com/prometheus/common/promslog"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/ns1/ns1-go.v2/mockns1"
 	api "gopkg.in/ns1/ns1-go.v2/rest"
@@ -38,7 +38,7 @@ import (
 )
 
 var (
-	mockLogger = promlog.New(&promlog.Config{})
+	mockLogger = promslog.New(&promslog.Config{})
 
 	mockZoneCache = map[string]*ns1_internal.Zone{
 		"foo.bar": {Zone: "foo.bar", Records: []*ns1_internal.ZoneRecord{

@@ -16,12 +16,11 @@ package ns1
 
 import (
 	"crypto/tls"
+	"log/slog"
 	"net/http"
 	"regexp"
 	"time"
 
-	"github.com/go-kit/log"
-	"github.com/go-kit/log/level"
 	api "gopkg.in/ns1/ns1-go.v2/rest"
 	"gopkg.in/ns1/ns1-go.v2/rest/model/dns"
 
@@ -90,12 +89,12 @@ func NewClient(config APIConfig) *api.Client {
 	return c
 }
 
-func RefreshZoneData(logger log.Logger, c *api.Client, getRecords bool, zoneBlacklist, zoneWhitelist *regexp.Regexp) map[string]*Zone {
+func RefreshZoneData(logger *slog.Logger, c *api.Client, getRecords bool, zoneBlacklist, zoneWhitelist *regexp.Regexp) map[string]*Zone {
 	zMap := make(map[string]*Zone)
 
 	zones, _, err := c.Zones.List()
 	if err != nil {
-		level.Error(logger).Log("msg", "Failed to list zones from NS1 API", "err", err.Error(), "worker", "exporter")
+		logger.Error("Failed to list zones from NS1 API", "err", err, "worker", "exporter")
 		metrics.MetricExporterNS1APIFailures.Inc()
 		return zMap
 	}
@@ -106,7 +105,7 @@ func RefreshZoneData(logger log.Logger, c *api.Client, getRecords bool, zoneBlac
 		for _, z := range zones {
 			if zoneBlacklist.MatchString(z.Zone) {
 				// if zone in blacklist, log it and skip it
-				level.Debug(logger).Log("msg", "skipping zone because it matches blacklist regex", "zone", z.Zone, "blacklist_regex", zoneBlacklist.String())
+				logger.Debug("skipping zone because it matches blacklist regex", "zone", z.Zone, "blacklist_regex", zoneBlacklist.String())
 				continue
 			}
 
@@ -122,7 +121,7 @@ func RefreshZoneData(logger log.Logger, c *api.Client, getRecords bool, zoneBlac
 		for _, z := range zones {
 			if !zoneWhitelist.MatchString(z.Zone) {
 				// if zone not in whitelist, log it and skip it
-				level.Debug(logger).Log("msg", "skipping zone because it doesn't match whitelist regex", "zone", z.Zone, "whitelist_regex", zoneWhitelist.String())
+				logger.Debug("skipping zone because it doesn't match whitelist regex", "zone", z.Zone, "whitelist_regex", zoneWhitelist.String())
 				continue
 			}
 			filteredZones = append(filteredZones, z)
@@ -137,7 +136,7 @@ func RefreshZoneData(logger log.Logger, c *api.Client, getRecords bool, zoneBlac
 		for _, z := range zones {
 			zoneDataRaw, _, err := c.Zones.Get(z.Zone, true)
 			if err != nil {
-				level.Error(logger).Log("msg", "Failed to get zone data from NS1 API", "err", err.Error(), "worker", "exporter", "zone_name", z.Zone)
+				logger.Error("Failed to get zone data from NS1 API", "err", err, "worker", "exporter", "zone_name", z.Zone)
 				continue
 			}
 
