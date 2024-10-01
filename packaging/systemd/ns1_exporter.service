@@ -4,6 +4,7 @@ Wants=network.target
 After=network.target
 
 [Service]
+DynamicUser=true
 ExecStart=/usr/bin/ns1_exporter
 Restart=on-failure
 KillSignal=SIGINT
