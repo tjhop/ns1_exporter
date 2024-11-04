@@ -26,7 +26,6 @@ import (
 	"time"
 
 	promModel "github.com/prometheus/common/model"
-	"github.com/samber/lo"
 	api "gopkg.in/ns1/ns1-go.v2/rest"
 	"gopkg.in/ns1/ns1-go.v2/rest/model/account"
 	"gopkg.in/ns1/ns1-go.v2/rest/model/data"
@@ -103,7 +102,7 @@ func metaAsPrometheusMetaLabel(meta *data.Meta, innerDelim, outerDelim string) s
 
 	fmt.Fprintf(&builder, "meta[%s", innerDelim)
 
-	metaMapKeys := lo.Keys(metaMap)
+	metaMapKeys := getMapKeys(metaMap)
 	sort.Strings(metaMapKeys)
 	for _, key := range metaMapKeys {
 		fmt.Fprintf(&builder, "%s=%v%s", key, metaMap[key], innerDelim)
@@ -152,7 +151,7 @@ func recordFiltersAsPrometheusMetaLabel(filters []*filter.Filter) string {
 		}
 
 		builder.WriteString("config[|")
-		configKeys := lo.Keys(filter.Config)
+		configKeys := getMapKeys(filter.Config)
 		sort.Strings(configKeys)
 		for _, key := range configKeys {
 			fmt.Fprintf(&builder, "%s=%v|", key, filter.Config[key])
@@ -344,4 +343,16 @@ func (w *Worker) ServeHTTP(writer http.ResponseWriter, req *http.Request) {
 	if bytesWritten, err := writer.Write(buf); err != nil {
 		w.logger.Error("Failed to write full HTTP response", "err", err, "bytes", bytesWritten)
 	}
+}
+
+func getMapKeys(m map[string]any) []string {
+	keys := make([]string, len(m))
+
+	i := 0
+	for key := range m {
+		keys[i] = key
+		i++
+	}
+
+	return keys
 }
