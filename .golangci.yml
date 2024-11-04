@@ -1,7 +1,9 @@
+linters:
+  enable:
+    - sloglint
+
 linters-settings:
   errcheck:
     exclude-functions:
       # Don't flag lines such as "io.Copy(io.Discard, resp.Body)".
       - io.Copy
-      # Never check for logger errors.
-      - (github.com/go-kit/log.Logger).Log
