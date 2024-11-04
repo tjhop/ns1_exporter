@@ -34,7 +34,7 @@ dockers:
 checksum:
   name_template: 'checksums.txt'
 snapshot:
-  name_template: "{{ incpatch .Version }}-next"
+  version_template: "{{ incpatch .Version }}-next"
 nfpms:
   - package_name: 'ns1_exporter'
     homepage: 'https://github.com/tjhop/ns1_exporter'
