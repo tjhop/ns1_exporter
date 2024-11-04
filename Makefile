@@ -31,6 +31,10 @@ binary: fmt tidy lint
 ## build:			alias for `binary`
 build: binary
 
+## test: 			run tests
+test: fmt tidy lint
+	go test -race -v ./...
+
 ## container: 		build container image with binary
 container: binary
 	podman image build -t "${RELEASE_CONTAINER_NAME}:latest" .
