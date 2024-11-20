@@ -30,7 +30,7 @@ dockers:
     - "--label=org.opencontainers.image.version={{.Version}}"
     - "--label=org.opencontainers.image.source=https://github.com/tjhop/ns1_exporter"
     - "--label=org.opencontainers.image.description='NS1 Prometheus Exporter and HTTP SD Provider'"
-    - "--label=org.opencontainers.image.licenses=MIT"
+    - "--label=org.opencontainers.image.licenses=Apache-2.0"
 checksum:
   name_template: 'checksums.txt'
 snapshot:
