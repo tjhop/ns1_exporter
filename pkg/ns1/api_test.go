@@ -33,7 +33,7 @@ var (
 
 func TestRefreshZoneData(t *testing.T) {
 	mock, doer, err := mockns1.New(t)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	defer mock.Shutdown()
 
 	mockClient := api.NewClient(doer, api.SetAPIKey("mockAPIKey"))
@@ -69,7 +69,7 @@ func TestRefreshZoneData(t *testing.T) {
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			require.Nil(t, mock.AddZoneListTestCase(nil, nil,
+			require.NoError(t, mock.AddZoneListTestCase(nil, nil,
 				[]*dns.Zone{
 					{Zone: "foo.bar", Records: []*dns.ZoneRecord{{Domain: "test.foo.bar", ShortAns: []string{"dead::beef"}, Type: "AAAA"}}},
 					{Zone: "keep.me", Records: []*dns.ZoneRecord{{Domain: "test.keep.me", ShortAns: []string{"1.2.3.4"}, Type: "A"}}},
@@ -79,30 +79,30 @@ func TestRefreshZoneData(t *testing.T) {
 
 			getRecords := tc.recordEnabled || tc.zoneEnabled
 
-			require.Nil(t, mock.AddZoneGetTestCase("foo.bar", nil, nil,
+			require.NoError(t, mock.AddZoneGetTestCase("foo.bar", nil, nil,
 				&dns.Zone{Zone: "foo.bar", Records: []*dns.ZoneRecord{{Domain: "test.foo.bar", ShortAns: []string{"dead::beef"}, Type: "AAAA"}}},
 				getRecords,
 			))
 
-			require.Nil(t, mock.AddZoneGetTestCase("keep.me", nil, nil,
+			require.NoError(t, mock.AddZoneGetTestCase("keep.me", nil, nil,
 				&dns.Zone{Zone: "keep.me", Records: []*dns.ZoneRecord{{Domain: "test.keep.me", ShortAns: []string{"1.2.3.4"}, Type: "A"}}},
 				getRecords,
 			))
 
-			require.Nil(t, mock.AddZoneGetTestCase("drop.me", nil, nil,
+			require.NoError(t, mock.AddZoneGetTestCase("drop.me", nil, nil,
 				&dns.Zone{Zone: "drop.me", Records: []*dns.ZoneRecord{{Domain: "test.drop.me", ShortAns: []string{"5.6.7.8"}, Type: "A"}}},
 				getRecords,
 			))
 
 			got := RefreshZoneData(mockLogger, mockClient, getRecords, tc.zoneBlacklist, tc.zoneWhitelist)
 			require.Equal(t, tc.want, got)
-			require.Equal(t, tc.expectedLen, len(got))
+			require.Len(t, got, tc.expectedLen)
 			for _, zone := range got {
 				switch getRecords {
 				case true:
-					require.Equal(t, 1, len(zone.Records))
+					require.Len(t, zone.Records, 1)
 				default:
-					require.Equal(t, 0, len(zone.Records))
+					require.Empty(t, zone.Records)
 				}
 			}
 

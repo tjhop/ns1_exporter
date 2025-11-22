@@ -36,8 +36,8 @@ type APIConfig struct {
 }
 
 // ZoneRecord is an internal struct that is essentially the same thing as a
-// `model/dns.ZoneRecord`, just trimmed down to removee a bunch of fields we
-// don't care about
+// `model/dns.ZoneRecord`, just trimmed down to remove a bunch of fields we
+// don't care about.
 type ZoneRecord struct {
 	Domain   string
 	ShortAns []string
@@ -47,14 +47,14 @@ type ZoneRecord struct {
 
 // Zone is an internal struct that is essentially the same thing as
 // `model/dns.Zone`, mostly trimmed down to drop a bunch of fields we don't
-// care about right now
+// care about right now.
 type Zone struct {
 	Zone       string
 	NetworkIDs []int // not used yet
 	Records    []*ZoneRecord
 }
 
-// QPS holds values related to QPS info from the NS1 API
+// QPS holds values related to QPS info from the NS1 API.
 type QPS struct {
 	Value      float32
 	ZoneName   string
@@ -62,7 +62,7 @@ type QPS struct {
 	RecordType string
 }
 
-// NewClient creates a new NS1 API client based on the provided config
+// NewClient creates a new NS1 API client based on the provided config.
 func NewClient(config APIConfig) *api.Client {
 	httpClient := &http.Client{Timeout: time.Second * 15}
 	clientOpts := []func(*api.Client){api.SetAPIKey(config.Token), api.SetFollowPagination(true), api.SetUserAgent(config.UserAgent)}

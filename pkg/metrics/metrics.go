@@ -29,7 +29,7 @@ var (
 	once     sync.Once
 	Registry *prometheus.Registry
 
-	// metric descriptions for ns1 stats as prometheus metrics
+	// Metric descriptions for ns1 stats as prometheus metrics.
 	MetricBuildInfoDesc = prometheus.NewDesc(
 		prometheus.BuildFQName(metricNamespace, "build", "info"),
 		"NS1 exporter build information",
@@ -41,7 +41,7 @@ var (
 		[]string{"zone_name", "record_name", "record_type"}, nil,
 	)
 
-	// metrics for operations of the exporter itself
+	// Metrics for operations of the exporter itself.
 	MetricExporterNS1APIFailures = prometheus.NewCounter(prometheus.CounterOpts{
 		Namespace: metricNamespace,
 		Name:      "api_failures_total",

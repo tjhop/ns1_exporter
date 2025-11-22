@@ -212,10 +212,9 @@ func TestRecordFiltersAsPrometheusMetaLabel(t *testing.T) {
 	}
 }
 
-// func recordAsPrometheusTarget(record *dns.Record) *HTTPSDTarget {
 func TestRecordAsPrometheusTarget(t *testing.T) {
 	mock, doer, err := mockns1.New(t)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	defer mock.Shutdown()
 
 	mockClient := api.NewClient(doer, api.SetAPIKey("mockAPIKey"))
@@ -251,7 +250,7 @@ func TestRecordAsPrometheusTarget(t *testing.T) {
 
 func TestRefreshRecordData(t *testing.T) {
 	mock, doer, err := mockns1.New(t)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	defer mock.Shutdown()
 
 	mockClient := api.NewClient(doer, api.SetAPIKey("mockAPIKey"))
@@ -274,7 +273,7 @@ func TestRefreshRecordData(t *testing.T) {
 
 		t.Run(name, func(t *testing.T) {
 			for _, record := range tc.want {
-				require.Nil(t, mock.AddTestCase(http.MethodGet, fmt.Sprintf("zones/%s/%s/%s", record.Zone, record.Domain, record.Type),
+				require.NoError(t, mock.AddTestCase(http.MethodGet, fmt.Sprintf("zones/%s/%s/%s", record.Zone, record.Domain, record.Type),
 					http.StatusOK, nil, nil, "", record),
 				)
 			}
@@ -291,7 +290,7 @@ func TestRefreshRecordData(t *testing.T) {
 
 func TestRefreshPrometheusTargetData(t *testing.T) {
 	mock, doer, err := mockns1.New(t)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	defer mock.Shutdown()
 
 	mockClient := api.NewClient(doer, api.SetAPIKey("mockAPIKey"))
@@ -324,7 +323,7 @@ func TestRefreshPrometheusTargetData(t *testing.T) {
 
 func TestServeHTTP(t *testing.T) {
 	mock, doer, err := mockns1.New(t)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	defer mock.Shutdown()
 
 	mockClient := api.NewClient(doer, api.SetAPIKey("mockAPIKey"))
@@ -354,7 +353,7 @@ func TestServeHTTP(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			url, err := url.JoinPath(ts.URL, "sd")
 			require.NoError(t, err)
-			req, err := http.NewRequest("GET", url, nil)
+			req, err := http.NewRequest(http.MethodGet, url, nil)
 			require.NoError(t, err)
 
 			req.Header.Set("Accept", "application/json")
@@ -367,7 +366,7 @@ func TestServeHTTP(t *testing.T) {
 				resp.Body.Close()
 			}()
 
-			require.Equal(t, resp.StatusCode, http.StatusOK)
+			require.Equal(t, http.StatusOK, resp.StatusCode)
 
 			got, err := io.ReadAll(resp.Body)
 			require.NoError(t, err)

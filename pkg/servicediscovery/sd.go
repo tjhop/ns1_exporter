@@ -210,7 +210,7 @@ func recordAsPrometheusTarget(record *dns.Record) *HTTPSDTarget {
 		ns1RecordLabelOverrideAddressRecords: promModel.LabelValue(overrideAddr),
 		ns1RecordLabelOverrideTTL:            promModel.LabelValue(overrideTTL),
 		ns1RecordLabelRegions:                promModel.LabelValue(recordRegionsMetaLabel),
-		ns1RecordLabelTTL:                    promModel.LabelValue(fmt.Sprintf("%d", record.TTL)),
+		ns1RecordLabelTTL:                    promModel.LabelValue(strconv.Itoa(record.TTL)),
 		ns1RecordLabelType:                   promModel.LabelValue(record.Type),
 		ns1RecordLabelUseClientSubnet:        promModel.LabelValue(useClientSubnet),
 		ns1RecordLabelZone:                   promModel.LabelValue(record.Zone),

@@ -15,9 +15,9 @@
 package exporter
 
 import (
-	"fmt"
 	"log/slog"
 	"regexp"
+	"strconv"
 
 	"github.com/prometheus/client_golang/prometheus"
 	api "gopkg.in/ns1/ns1-go.v2/rest"
@@ -28,7 +28,8 @@ import (
 )
 
 // Worker is a struct containing configs needed to retrieve stats from NS1 API
-// to expose as prometheus metrics. It implements the prometheus.Collector interface
+// to expose as prometheus metrics. It implements the prometheus.Collector
+// interface.
 type Worker struct {
 	EnableZoneQPS   bool
 	EnableRecordQPS bool
@@ -41,7 +42,7 @@ type Worker struct {
 	qpsCache  []*ns1_internal.QPS
 }
 
-// NewWorker creates a new Worker struct to collect data from the NS1 API
+// NewWorker creates a new Worker struct to collect data from the NS1 API.
 func NewWorker(logger *slog.Logger, client *api.Client, zoneEnabled, recordEnabled bool, blacklist, whitelist *regexp.Regexp) *Worker {
 	worker := &Worker{
 		EnableZoneQPS:   zoneEnabled,
@@ -58,13 +59,13 @@ func NewWorker(logger *slog.Logger, client *api.Client, zoneEnabled, recordEnabl
 	return worker
 }
 
-// Describe implements the prometheus.Collector interface
+// Describe implements the prometheus.Collector interface.
 func (w *Worker) Describe(ch chan<- *prometheus.Desc) {
 	ch <- metrics.MetricBuildInfoDesc
 	ch <- metrics.MetricQPSDesc
 }
 
-// Collect implements the prometheus.Collector interface
+// Collect implements the prometheus.Collector interface.
 func (w *Worker) Collect(ch chan<- prometheus.Metric) {
 	// write build info
 	ch <- prometheus.MustNewConstMetric(
@@ -158,7 +159,7 @@ func (w *Worker) RefreshQPSRecordData() {
 	for _, z := range w.zoneCache {
 		numRecords += len(z.Records)
 	}
-	w.logger.Debug("updating worker qps cache", "zone_count", len(w.zoneCache), "record_count", fmt.Sprintf("%d", numRecords))
+	w.logger.Debug("updating worker qps cache", "zone_count", len(w.zoneCache), "record_count", strconv.Itoa(numRecords))
 
 	var cache []*ns1_internal.QPS
 
