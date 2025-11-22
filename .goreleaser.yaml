@@ -5,6 +5,8 @@ builds:
       - CGO_ENABLED=0
     goos:
       - linux
+      - darwin
+      - windows
     ldflags:
       - -X github.com/tjhop/ns1_exporter/internal/version.BuildDate={{ .CommitDate }}
       - -X github.com/tjhop/ns1_exporter/internal/version.Version={{ .Version }}
@@ -59,6 +61,8 @@ nfpms:
     scripts:
       preinstall: ./packaging/scripts/preinstall.sh
       postinstall: ./packaging/scripts/postinstall.sh
+universal_binaries:
+  - replace: true
 changelog:
   sort: asc
   filters:
