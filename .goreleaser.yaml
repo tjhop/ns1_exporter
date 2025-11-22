@@ -19,23 +19,25 @@ builds:
 gomod:
   proxy: true
   mod: mod
-dockers:
-  # build latest and specific tag version images
-  - image_templates:
-      - "ghcr.io/tjhop/{{.ProjectName}}:{{ .Tag }}"
-      - "ghcr.io/tjhop/{{.ProjectName}}:latest"
-    goos: linux
-    goarch: amd64
-    use: docker
-    build_flag_templates:
-    - "--pull"
-    - "--label=org.opencontainers.image.created={{.Date}}"
-    - "--label=org.opencontainers.image.title={{.ProjectName}}"
-    - "--label=org.opencontainers.image.revision={{.FullCommit}}"
-    - "--label=org.opencontainers.image.version={{.Version}}"
-    - "--label=org.opencontainers.image.source=https://github.com/tjhop/ns1_exporter"
-    - "--label=org.opencontainers.image.description='NS1 Prometheus Exporter and HTTP SD Provider'"
-    - "--label=org.opencontainers.image.licenses=Apache-2.0"
+dockers_v2:
+  - images:
+      - "ghcr.io/tjhop/{{.ProjectName}}"
+    tags:
+      - "{{.Version}}"
+      - "v{{.Version}}"
+      - "latest"
+    labels:
+      "org.opencontainers.image.description": "NS1 Prometheus Exporter and HTTP SD Provider"
+      "org.opencontainers.image.created": "{{.Date}}"
+      "org.opencontainers.image.name": "{{.ProjectName}}"
+      "org.opencontainers.image.title": "{{.ProjectName}}"
+      "org.opencontainers.image.revision": "{{.FullCommit}}"
+      "org.opencontainers.image.version": "{{.Version}}"
+      "org.opencontainers.image.source": "{{.GitURL}}"
+      "org.opencontainers.image.licenses": "Apache-2.0"
+    platforms:
+      - linux/amd64
+      - linux/arm64
 checksum:
   name_template: 'checksums.txt'
 snapshot:
