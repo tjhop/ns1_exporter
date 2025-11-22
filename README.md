@@ -16,6 +16,8 @@ Contributions are welcome! Commits should follow [conventional commits](https://
 
 ## Installation
 
+All command line flags have corresponding environment variables, please see [flags](#command-line-flags).
+
 ### Docker
 
 ```shell
@@ -117,67 +119,35 @@ usage: ns1_exporter [<flags>]
 
 
 Flags:
-  -h, --[no-]help                Show context-sensitive help (also try
-                                 --help-long and --help-man).
+  -h, --[no-]help                Show context-sensitive help (also try --help-long and --help-man). ($NS1_EXPORTER_HELP)
       --web.telemetry-path="/metrics"  
-                                 Path under which to expose metrics.
+                                 Path under which to expose metrics. ($NS1_EXPORTER_WEB_TELEMETRY_PATH)
       --web.service-discovery-path="/sd"  
-                                 Path under which to expose targets for
-                                 Prometheus HTTP service discovery.
-      --web.max-requests=40      Maximum number of parallel scrape requests.
-                                 Use 0 to disable.
-      --ns1.concurrency=0        NS1 API request concurrency. Default
-                                 (0) uses NS1 Go SDK sleep strategry.
-                                 60 may be good balance between performance
-                                 and reduced risk of HTTP 429, see
-                                 https://pkg.go.dev/gopkg.in/ns1/ns1-go.v2/rest
-                                 and exporter documentation for more
-                                 information.
+                                 Path under which to expose targets for Prometheus HTTP service discovery. ($NS1_EXPORTER_WEB_SERVICE_DISCOVERY_PATH)
+      --web.max-requests=40      Maximum number of parallel scrape requests. Use 0 to disable. ($NS1_EXPORTER_WEB_MAX_REQUESTS)
+      --ns1.concurrency=0        NS1 API request concurrency. Default (0) uses NS1 Go SDK sleep strategry. 60 may be good balance between performance and reduced risk of HTTP 429, see https://pkg.go.dev/gopkg.in/ns1/ns1-go.v2/rest
+                                 and exporter documentation for more information. ($NS1_EXPORTER_NS1_CONCURRENCY)
       --[no-]ns1.exporter-enable-record-qps  
-                                 Whether or not to enable retrieving
-                                 record-level QPS stats from the NS1 API
+                                 Whether or not to enable retrieving record-level QPS stats from the NS1 API. Default is enabled. ($NS1_EXPORTER_NS1_EXPORTER_ENABLE_RECORD_QPS)
       --[no-]ns1.exporter-enable-zone-qps  
-                                 Whether or not to enable retrieving zone-level
-                                 QPS stats from the NS1 API (overridden by
-                                 `--ns1.enable-record-qps`)
+                                 Whether or not to enable retrieving zone-level QPS stats from the NS1 API (overridden by `--ns1.enable-record-qps`). Default is enabled. ($NS1_EXPORTER_NS1_EXPORTER_ENABLE_ZONE_QPS)
       --ns1.exporter-zone-blacklist=  
-                                 A regular expression of zone(s) the exporter
-                                 is not allowed to query qps stats for (takes
-                                 precedence over --ns1.exporter-zone-whitelist)
+                                 A regular expression of zone(s) the exporter is not allowed to query qps stats for (takes precedence over --ns1.exporter-zone-whitelist). ($NS1_EXPORTER_NS1_EXPORTER_ZONE_BLACKLIST)
       --ns1.exporter-zone-whitelist=  
-                                 A regular expression of zone(s) the exporter is
-                                 allowed to query qps stats for
+                                 A regular expression of zone(s) the exporter is allowed to query qps stats for. ($NS1_EXPORTER_NS1_EXPORTER_ZONE_WHITELIST)
       --[no-]ns1.enable-service-discovery  
-                                 Whether or not to enable an HTTP endpoint
-                                 to expose NS1 DNS records as HTTP service
-                                 discovery targets
-      --ns1.sd-refresh-interval=5m  
-                                 The interval at which targets for Prometheus
-                                 HTTP service discovery will be refreshed from
-                                 the NS1 API
-      --ns1.sd-zone-blacklist=   A regular expression of zone(s) that the
-                                 service discovery mechanism will not
-                                 provide targets for (takes precedence over
-                                 --ns1.sd-zone-whitelist)
-      --ns1.sd-zone-whitelist=   A regular expression of zone(s) that the
-                                 service discovery mechanism will provide
-                                 targets for
-      --ns1.sd-record-type=      A regular expression of record types that
-                                 the service discovery mechanism will provide
-                                 targets for
-      --runtime.gomaxprocs=1     The target number of CPUs Go will run on
-                                 (GOMAXPROCS) ($GOMAXPROCS)
-      --[no-]web.systemd-socket  Use systemd socket activation listeners instead
-                                 of port listeners (Linux only).
+                                 Whether or not to enable an HTTP endpoint to expose NS1 DNS records as HTTP service discovery targets. Default is disabled. ($NS1_EXPORTER_NS1_ENABLE_SERVICE_DISCOVERY)
+      --ns1.sd-refresh-interval=1m  
+                                 The interval at which targets for Prometheus HTTP service discovery will be refreshed from the NS1 API. ($NS1_EXPORTER_NS1_SD_REFRESH_INTERVAL)
+      --ns1.sd-zone-blacklist=   A regular expression of zone(s) that the service discovery mechanism will not provide targets for (takes precedence over --ns1.sd-zone-whitelist). ($NS1_EXPORTER_NS1_SD_ZONE_BLACKLIST)
+      --ns1.sd-zone-whitelist=   A regular expression of zone(s) that the service discovery mechanism will provide targets for. ($NS1_EXPORTER_NS1_SD_ZONE_WHITELIST)
+      --ns1.sd-record-type=      A regular expression of record types that the service discovery mechanism will provide targets for. ($NS1_EXPORTER_NS1_SD_RECORD_TYPE)
+      --runtime.gomaxprocs=1     The target number of CPUs Go will run on (GOMAXPROCS). ($GOMAXPROCS)
+      --[no-]web.systemd-socket  Use systemd socket activation listeners instead of port listeners (Linux only). ($NS1_EXPORTER_WEB_SYSTEMD_SOCKET)
       --web.listen-address=:8080 ...  
-                                 Addresses on which to expose metrics and web
-                                 interface. Repeatable for multiple addresses.
-      --web.config.file=""       [EXPERIMENTAL] Path to configuration file
-                                 that can enable TLS or authentication. See:
-                                 https://github.com/prometheus/exporter-toolkit/blob/master/docs/web-configuration.md
-      --log.level=info           Only log messages with the given severity or
-                                 above. One of: [debug, info, warn, error]
-      --log.format=logfmt        Output format of log messages. One of: [logfmt,
-                                 json]
-      --[no-]version             Show application version.
+                                 Addresses on which to expose metrics and web interface. Repeatable for multiple addresses. Examples: `:9100` or `[::1]:9100` for http, `vsock://:9100` for vsock ($NS1_EXPORTER_WEB_LISTEN_ADDRESS)
+      --web.config.file=""       Path to configuration file that can enable TLS or authentication. See: https://github.com/prometheus/exporter-toolkit/blob/master/docs/web-configuration.md ($NS1_EXPORTER_WEB_CONFIG_FILE)
+      --log.level=info           Only log messages with the given severity or above. One of: [debug, info, warn, error] ($NS1_EXPORTER_LOG_LEVEL)
+      --log.format=logfmt        Output format of log messages. One of: [logfmt, json] ($NS1_EXPORTER_LOG_FORMAT)
+      --[no-]version             Show application version. ($NS1_EXPORTER_VERSION)
 ```
