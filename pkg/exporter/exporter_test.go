@@ -48,7 +48,7 @@ var (
 
 func TestRefreshQPSAccountData(t *testing.T) {
 	mock, doer, err := mockns1.New(t)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	defer mock.Shutdown()
 
 	mockClient := api.NewClient(doer, api.SetAPIKey("mockAPIKey"))
@@ -78,15 +78,15 @@ ns1_stats_queries_per_second{record_name="",record_type="",zone_name=""} 10000
 
 		t.Run(name, func(t *testing.T) {
 			for _, qps := range tc.want {
-				require.Nil(t, mock.AddTestCase(http.MethodGet, "stats/qps", http.StatusOK, nil, nil, "",
+				require.NoError(t, mock.AddTestCase(http.MethodGet, "stats/qps", http.StatusOK, nil, nil, "",
 					struct{ QPS float32 }{QPS: qps.Value}),
 				)
 			}
 
 			worker.RefreshQPSAccountData()
 
-			require.Equal(t, len(tc.want), len(worker.qpsCache))
-			require.Nil(t, prom_testutil.CollectAndCompare(worker, strings.NewReader(accountQPSMetricsExpected)))
+			require.Len(t, tc.want, len(worker.qpsCache))
+			require.NoError(t, prom_testutil.CollectAndCompare(worker, strings.NewReader(accountQPSMetricsExpected)))
 
 			// clear test cases for next iteration
 			mock.ClearTestCases()
@@ -99,7 +99,7 @@ ns1_stats_queries_per_second{record_name="",record_type="",zone_name=""} 10000
 
 func TestRefreshQPSZoneData(t *testing.T) {
 	mock, doer, err := mockns1.New(t)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	defer mock.Shutdown()
 
 	mockClient := api.NewClient(doer, api.SetAPIKey("mockAPIKey"))
@@ -131,15 +131,15 @@ ns1_stats_queries_per_second{record_name="",record_type="",zone_name="keep.me"} 
 
 		t.Run(name, func(t *testing.T) {
 			for _, qps := range tc.want {
-				require.Nil(t, mock.AddTestCase(http.MethodGet, fmt.Sprintf("stats/qps/%s", qps.ZoneName), http.StatusOK, nil, nil, "",
+				require.NoError(t, mock.AddTestCase(http.MethodGet, "stats/qps/"+qps.ZoneName, http.StatusOK, nil, nil, "",
 					struct{ QPS float32 }{QPS: qps.Value}),
 				)
 			}
 
 			worker.RefreshQPSZoneData()
 
-			require.Equal(t, len(tc.want), len(worker.qpsCache))
-			require.Nil(t, prom_testutil.CollectAndCompare(worker, strings.NewReader(zoneQPSMetricsExpected)))
+			require.Len(t, tc.want, len(worker.qpsCache))
+			require.NoError(t, prom_testutil.CollectAndCompare(worker, strings.NewReader(zoneQPSMetricsExpected)))
 
 			// clear test cases for next iteration
 			mock.ClearTestCases()
@@ -152,7 +152,7 @@ ns1_stats_queries_per_second{record_name="",record_type="",zone_name="keep.me"} 
 
 func TestRefreshQPSRecordData(t *testing.T) {
 	mock, doer, err := mockns1.New(t)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	defer mock.Shutdown()
 
 	mockClient := api.NewClient(doer, api.SetAPIKey("mockAPIKey"))
@@ -190,15 +190,15 @@ ns1_stats_queries_per_second{record_name="test.keep.me",record_type="A",zone_nam
 
 		t.Run(name, func(t *testing.T) {
 			for _, qps := range tc.want {
-				require.Nil(t, mock.AddTestCase(http.MethodGet, fmt.Sprintf("stats/qps/%s/%s/%s", qps.ZoneName, qps.RecordName, qps.RecordType),
+				require.NoError(t, mock.AddTestCase(http.MethodGet, fmt.Sprintf("stats/qps/%s/%s/%s", qps.ZoneName, qps.RecordName, qps.RecordType),
 					http.StatusOK, nil, nil, "", struct{ QPS float32 }{QPS: qps.Value}),
 				)
 			}
 
 			worker.RefreshQPSRecordData()
 
-			require.Equal(t, len(tc.want), len(worker.qpsCache))
-			require.Nil(t, prom_testutil.CollectAndCompare(worker, strings.NewReader(recordQPSMetricsExpected)))
+			require.Len(t, tc.want, len(worker.qpsCache))
+			require.NoError(t, prom_testutil.CollectAndCompare(worker, strings.NewReader(recordQPSMetricsExpected)))
 
 			// clear test cases for next iteration
 			mock.ClearTestCases()

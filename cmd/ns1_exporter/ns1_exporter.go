@@ -16,6 +16,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -162,7 +163,7 @@ func Run(logger *slog.Logger) {
 	apiClient := ns1.NewClient(ns1.APIConfig{
 		Token:       token,
 		Concurrency: *flagNS1Concurrency,
-		UserAgent:   fmt.Sprintf("ns1_exporter/%s", version.Version),
+		UserAgent:   "ns1_exporter/" + version.Version,
 	})
 	exporterWorker := exporter.NewWorker(logger, apiClient, *flagNS1ExporterEnableZoneQPS, *flagNS1ExporterEnableRecordQPS, *flagNS1ExporterZoneBlacklistRegex, *flagNS1ExporterZoneWhitelistRegex)
 	sdWorker := sd.NewWorker(logger, apiClient, *flagNS1SDZoneBlacklistRegex, *flagNS1SDZoneWhitelistRegex, *flagNS1SDRecordTypeRegex)
@@ -270,7 +271,8 @@ func Run(logger *slog.Logger) {
 
 		g.Add(
 			func() error {
-				if err := web.ListenAndServe(server, toolkitFlags, logger); err != http.ErrServerClosed {
+				err := web.ListenAndServe(server, toolkitFlags, logger)
+				if !errors.Is(err, http.ErrServerClosed) {
 					logger.Error("Failed to run webserver", "err", err)
 					return err
 				}
