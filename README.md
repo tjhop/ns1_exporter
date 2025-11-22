@@ -38,7 +38,7 @@ _NOTE_: Installing via this method will result in a build without embedded metad
 git clone https://github.com/tjhop/ns1_exporter.git
 cd ns1_exporter
 make build
-NS1_APIKEY="<api-token>" ./dist/ns1_exporter_linux_amd64_v1/ns1_exporter <flags>
+NS1_APIKEY="<api-token>" ./ns1_exporter <flags>
 ```
 
 ### Binary
@@ -114,7 +114,7 @@ An example Prometheus configuration file demonstrating HTTP SD can be found in [
 The available command line flags are documented in the help flag:
 
 ```shell
-~ -> ./dist/ns1_exporter_linux_amd64_v1/ns1_exporter -h
+~ -> ./ns1_exporter -h
 usage: ns1_exporter [<flags>]
 
 
