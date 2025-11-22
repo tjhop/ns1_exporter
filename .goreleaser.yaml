@@ -58,9 +58,6 @@ nfpms:
           mode: 0644
           owner: root
           group: root
-    scripts:
-      preinstall: ./packaging/scripts/preinstall.sh
-      postinstall: ./packaging/scripts/postinstall.sh
 universal_binaries:
   - replace: true
 changelog:
