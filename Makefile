@@ -20,8 +20,7 @@ fmt:
 
 ## lint:			run linters
 lint:
-	mkdir -p ${GOLANGCILINT_CACHE} || true
-	podman run --rm -v ${CURDIR}:/app -v ${GOLANGCILINT_CACHE}:/root/.cache -w /app docker.io/golangci/golangci-lint:latest golangci-lint run -v
+	golangci-lint run -v
 	nilaway ./...
 
 ## binary:		build a binary
