@@ -1,7 +1,23 @@
 version: "2"
 linters:
   enable:
+    - errorlint
+    - exptostd
+    - fatcontext
+    - gocritic
+    - godot
+    - govet
+    - misspell
+    - nilnesserr
+    - nolintlint
+    - perfsprint
+    - predeclared
     - sloglint
+    - testifylint
+    - unconvert
+    - unused
+    - usestdlibvars
+    - whitespace
   settings:
     errcheck:
       exclude-functions:
